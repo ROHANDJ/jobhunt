@@ -1,0 +1,49 @@
+name: 📬 Daily Digest Email
+
+on:
+  # Every day at 9:00 AM IST = 3:30 AM UTC
+  schedule:
+    - cron: '30 3 * * *'
+
+  # Also lets you trigger it manually from GitHub Actions tab
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Why are you triggering this manually?'
+        required: false
+        default: 'Testing'
+
+jobs:
+  send-digest:
+    name: Generate & Send Daily Digest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --omit=dev --ignore-scripts
+        # --ignore-scripts skips playwright browser download (not needed for email)
+
+      - name: Send daily digest
+        run: node automation/send-digest.js
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GMAIL_USER:        ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+
+      - name: Log success
+        if: success()
+        run: echo "✅ Daily digest sent at $(date -u '+%Y-%m-%d %H:%M UTC')"
+
+      - name: Log failure
+        if: failure()
+        run: echo "❌ Digest failed — check API keys in GitHub Secrets"
