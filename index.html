@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JobHunt Pro — Fresher Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+
+<!-- ════ SIDEBAR OVERLAY ════ -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- ════ SIDEBAR ════ -->
+<nav class="sidebar" id="sidebar">
+  <div class="logo-wrap">
+    <div class="logo">JobHunt Pro</div>
+    <div class="logo-ico" style="display:none;font-size:22px;text-align:center;">🚀</div>
+    <div class="logo-sub">Career Command Center</div>
+    <div class="fresher-pill">🎓 Fresher Mode ON</div>
+  </div>
+  <div class="nav">
+    <div class="nsec">Main</div>
+    <div class="ni active" onclick="nav('dashboard',this)"><span class="ico">⚡</span><span>Dashboard</span></div>
+    <div class="ni" onclick="nav('jobs',this)"><span class="ico">🔍</span><span>Job Board</span><span class="nb">18</span></div>
+    <div class="ni" onclick="nav('apply',this)"><span class="ico">✉️</span><span>Auto Apply</span></div>
+    <div class="ni" onclick="nav('tracker',this)"><span class="ico">📊</span><span>Tracker</span></div>
+    <div class="nsec">Resources</div>
+    <div class="ni" onclick="nav('daily',this)"><span class="ico">🔥</span><span>Daily Hub</span><span class="nb" id="streak-pill">0🔥</span></div>
+    <div class="ni" onclick="nav('news',this)"><span class="ico">📰</span><span>Tech News</span></div>
+    <div class="ni" onclick="nav('resume',this)"><span class="ico">🤖</span><span>Resume AI</span></div>
+    <div class="ni" onclick="nav('roadmap',this)"><span class="ico">🗺️</span><span>DSA Roadmap</span></div>
+    <div class="nsec">Account</div>
+    <div class="ni" onclick="nav('profile',this)"><span class="ico">👤</span><span>Profile</span></div>
+    <div class="ni" onclick="nav('settings',this)"><span class="ico">⚙️</span><span>Settings</span></div>
+  </div>
+  <div class="sfooter">
+    <div class="uchip" onclick="nav('profile',null)">
+      <div class="ava" id="s-ava">YO</div>
+      <div><div class="un" id="s-name">Your Name</div><div class="ur">Fresher · SWE / DS•ML</div></div>
+    </div>
+  </div>
+</nav>
+
+<!-- ════ MAIN ════ -->
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+    <div class="ttl" id="page-ttl">⚡ Dashboard</div>
+    <div class="sw">
+      <span style="color:var(--muted);font-size:12px;">🔎</span>
+      <input type="text" placeholder="Search jobs…" id="gsearch" oninput="doSearch(this.value)"/>
+    </div>
+    <div class="gmail-pill"><div class="gdot"></div>Gmail Connected</div>
+    <button class="btn btn-p bsm" onclick="openM('qa-modal')">⚡ Quick Apply</button>
+  </div>
+
+  <!-- ══ DASHBOARD ══ -->
+  <div class="page active" id="pg-dashboard">
+    <div class="stats-row">
+      <div class="stat"><div class="slbl">Applications Sent</div><div class="sval" id="ds-sent">0</div><div class="ssub sup" id="ds-sub">Start your campaign ↗</div></div>
+      <div class="stat"><div class="slbl">Responses</div><div class="sval" id="ds-resp">0</div><div class="ssub">Awaiting replies</div></div>
+      <div class="stat"><div class="slbl">Fresher Openings</div><div class="sval">18</div><div class="ssub sup">↑ 6 new today</div></div>
+      <div class="stat"><div class="slbl">Profile Score</div><div class="sval" id="ds-score">35%</div><div class="ssub sdn" id="ds-score-sub">↓ Fill profile</div></div>
+    </div>
+    <div class="qa-grid">
+      <div class="qa" onclick="nav('apply',null)"><div class="qai">✉️</div><div class="qal">Send Emails</div><div class="qas">Auto-apply via Gmail</div></div>
+      <div class="qa" onclick="nav('jobs',null)"><div class="qai">🔍</div><div class="qal">Browse Jobs</div><div class="qas">18 fresher openings</div></div>
+      <div class="qa" onclick="nav('resume',null)"><div class="qai">🤖</div><div class="qal">Resume AI</div><div class="qas">ATS score + tips</div></div>
+      <div class="qa" onclick="nav('roadmap',null)"><div class="qai">🗺️</div><div class="qal">DSA Roadmap</div><div class="qas">Interview prep guide</div></div>
+    </div>
+    <div class="dash-two-col">
+      <div>
+        <div class="card" style="margin-bottom:17px;">
+          <div class="sh"><div class="stl">📈 Applications This Week</div></div>
+          <div class="bc" id="bchart"></div>
+          <div style="display:flex;gap:5px;margin-top:4px;" id="blabs"></div>
+        </div>
+        <div class="card">
+          <div class="sh"><div class="stl">🎯 Top Fresher Picks</div><button class="btn btn-g bsm" onclick="nav('jobs',null)">All →</button></div>
+          <div id="d-jobs"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="sh"><div class="stl">⚡ Activity</div></div>
+          <div id="actfeed"></div>
+        </div>
+        <div class="card">
+          <div class="sh"><div class="stl">📰 News</div><button class="btn btn-g bsm" onclick="nav('news',null)">More →</button></div>
+          <div id="d-news"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ JOB BOARD ══ -->
+  <div class="page" id="pg-jobs">
+    <div class="info-banner" id="jnudge">
+      <span style="font-size:20px;">💡</span>
+      <div style="flex:1;">
+        <div style="font-size:12.5px;font-weight:600;">Showing fresher-friendly roles in Software Engineering & Data Science / ML</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Filtered for 0-1 yr experience · internships included</div>
+      </div>
+      <button class="btn btn-g bsm" onclick="document.getElementById('jnudge').style.display='none'">✕</button>
+    </div>
+    <div class="filters" id="jfil">
+      <div class="fbtn active" onclick="fjobs('all',this)">All (18)</div>
+      <div class="fbtn" onclick="fjobs('swe',this)">💻 Software Eng</div>
+      <div class="fbtn" onclick="fjobs('ds',this)">🧠 Data Science / ML</div>
+      <div class="fbtn" onclick="fjobs('intern',this)">🎓 Internships</div>
+      <div class="fbtn" onclick="fjobs('remote',this)">🌍 Remote</div>
+      <div class="fbtn" onclick="fjobs('applied',this)">✅ Applied</div>
+    </div>
+    <div class="sh"><div class="stl">🔍 Open Positions <span id="jct" style="font-weight:400;color:var(--muted);font-size:12px;"></span></div></div>
+    <div class="jgrid" id="jgrid"></div>
+  </div>
+
+  <!-- ══ AUTO APPLY ══ -->
+  <div class="page" id="pg-apply">
+    <div class="apply-two-col">
+      <div>
+        <div class="composer">
+          <div class="ch">
+            <div>
+              <div class="stl">✉️ Email Campaign — Gmail Integration</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:3px;">AI-written cover letter · Sent directly via your Gmail</div>
+            </div>
+            <button class="btn btn-p" id="sendbtn" onclick="sendEmails()">📤 Send via Gmail</button>
+          </div>
+          <div class="cb">
+            <!-- LEFT: FORM -->
+            <div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+                <div><label class="flbl">Your Name</label><input class="fin" id="c-name" placeholder="Full name" oninput="updatePrev()"/></div>
+                <div><label class="flbl">Your Gmail</label><input class="fin" id="c-email" placeholder="you@gmail.com" type="email"/></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+                <div>
+                  <label class="flbl">Role</label>
+                  <select class="fsel" id="c-role" onchange="updatePrev()">
+                    <option>Software Engineer</option>
+                    <option>Junior Software Developer</option>
+                    <option>Frontend Developer</option>
+                    <option>Backend Developer</option>
+                    <option>Full Stack Developer</option>
+                    <option>Data Scientist</option>
+                    <option>ML Engineer</option>
+                    <option>Data Analyst</option>
+                    <option>SDE Intern</option>
+                    <option>Technology Analyst</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="flbl">Experience</label>
+                  <select class="fsel" id="c-exp" onchange="updatePrev()">
+                    <option value="fresher">Fresher (0 yrs)</option>
+                    <option value="6 months">6 months</option>
+                    <option value="1 year">1 year</option>
+                    <option value="intern">Internship seeker</option>
+                  </select>
+                </div>
+              </div>
+              <label class="flbl">Key Skills</label>
+              <input class="fin" id="c-skills" value="Python, Data Structures, SQL, React, Git, Machine Learning" oninput="updatePrev()"/>
+              <label class="flbl">College / Degree</label>
+              <input class="fin" id="c-college" placeholder="B.Tech CSE, XYZ University (2025)" oninput="updatePrev()"/>
+              <label class="flbl">CGPA / Percentage</label>
+              <input class="fin" id="c-cgpa" placeholder="8.5 CGPA" oninput="updatePrev()"/>
+
+              <div class="divider"></div>
+              <div style="font-weight:700;font-size:12.5px;margin-bottom:9px;">
+                👥 Recruiter Emails
+                <span style="font-size:10.5px;font-weight:400;color:var(--muted);">(email + resume sent to each)</span>
+              </div>
+              <div style="display:flex;gap:7px;margin-bottom:7px;">
+                <input class="fin" style="margin:0;flex:1;" id="rec-in" placeholder="recruiter@company.com" onkeydown="if(event.key==='Enter')addRec()"/>
+                <button class="btn btn-g bsm" onclick="addRec()">+ Add</button>
+              </div>
+              <div id="rec-tags" style="margin-bottom:7px;"></div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="btn btn-g bsm" onclick="addSampleRecs()">+ Indian IT Recruiters</button>
+                <button class="btn btn-g bsm" onclick="addMNCs()">+ MNCs / Big Tech</button>
+              </div>
+
+              <div class="divider"></div>
+              <div style="font-weight:700;font-size:12.5px;margin-bottom:9px;">📎 Attach Resume / CV</div>
+              <div class="upzone" id="upzone"
+                onclick="document.getElementById('res-file').click()"
+                ondragover="event.preventDefault();this.classList.add('drag')"
+                ondragleave="this.classList.remove('drag')"
+                ondrop="handleDrop(event)">
+                <div class="uico">📄</div>
+                <div class="utxt"><strong>Click to upload</strong> or drag & drop<br/>PDF, DOC, DOCX · max 5MB</div>
+              </div>
+              <input type="file" id="res-file" accept=".pdf,.doc,.docx" style="display:none" onchange="handleResUp(this)"/>
+              <div id="res-at"></div>
+
+              <div class="scheduler">
+                <span style="font-size:20px;">⏰</span>
+                <div style="flex:1;">
+                  <div style="font-size:12.5px;font-weight:600;">Daily Auto-Send</div>
+                  <div style="font-size:10px;color:var(--muted);">Every morning at 9 AM via Gmail</div>
+                </div>
+                <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;">
+                  <input type="checkbox" id="auto-chk" style="accent-color:var(--accent);"/>Enable
+                </label>
+              </div>
+            </div>
+
+            <!-- RIGHT: PREVIEW -->
+            <div>
+              <div style="font-weight:700;font-size:12.5px;margin-bottom:9px;">👁️ Live Preview</div>
+              <div class="prevbox">
+                <div class="prevsubj" id="prev-subj">Subject: Application for Software Engineer — Your Name</div>
+                <div id="prev-body"></div>
+              </div>
+              <div style="display:flex;gap:6px;margin-top:9px;">
+                <button class="btn btn-g bsm" onclick="regenEmail()">🔄 Regenerate</button>
+                <button class="btn btn-g bsm" onclick="copyEmail()">📋 Copy</button>
+              </div>
+              <div class="divider"></div>
+              <div style="font-weight:700;font-size:12.5px;margin-bottom:9px;">🎯 Target Companies</div>
+              <div id="tgt-cos" style="font-size:11.5px;color:var(--muted);">Add recruiter emails above</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SENT LOG -->
+        <div class="card" style="margin-top:16px;">
+          <div class="sh">
+            <div class="stl">📬 Sent Log</div>
+            <span style="font-size:10.5px;color:var(--muted);" id="sent-ct">0 sent</span>
+          </div>
+          <div id="slog">
+            <div class="empty"><div class="emico">📭</div><p class="emtxt">No emails sent yet. Fill the form above and hit Send!</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT SIDEBAR -->
+      <div>
+        <div class="card" style="margin-bottom:14px;">
+          <div class="stl" style="margin-bottom:13px;">📊 Campaign Stats</div>
+          <div style="margin-bottom:13px;"><div class="slbl">Total Sent</div><div class="big-stat" id="cs-tot">0</div></div>
+          <div><div class="slbl">This Week</div><div class="big-stat" id="cs-wk">0</div></div>
+        </div>
+        <div class="card">
+          <div class="stl" style="margin-bottom:13px;">💡 Fresher Tips</div>
+          <div id="ftips"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TRACKER ══ -->
+  <div class="page" id="pg-tracker">
+    <div class="tabs">
+      <div class="tab active" onclick="sTab('all',this)">All</div>
+      <div class="tab" onclick="sTab('sent',this)">Sent</div>
+      <div class="tab" onclick="sTab('interview',this)">Interview</div>
+      <div class="tab" onclick="sTab('offer',this)">Offers 🎉</div>
+      <div class="tab" onclick="sTab('rejected',this)">Rejected</div>
+    </div>
+    <div class="card">
+      <table class="ttable">
+        <thead><tr><th>Company</th><th>Role</th><th>Applied</th><th>Status</th><th>Recruiter</th><th>Update</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="t-empty" style="display:none;"><div class="emico">📊</div><p class="emtxt">No applications yet.</p></div>
+    </div>
+  </div>
+
+  <!-- ══ NEWS ══ -->
+  <div class="page" id="pg-news">
+    <div class="filters" id="nfil">
+      <div class="fbtn active" onclick="fnews('all',this)">All</div>
+      <div class="fbtn" onclick="fnews('AI',this)">🤖 AI / ML</div>
+      <div class="fbtn" onclick="fnews('jobs',this)">💼 Jobs & Hiring</div>
+      <div class="fbtn" onclick="fnews('startup',this)">🚀 Startups</div>
+      <div class="fbtn" onclick="fnews('tools',this)">🛠️ Dev Tools</div>
+    </div>
+    <div id="nload" style="text-align:center;padding:48px;color:var(--muted);">
+      <div class="spin" style="width:24px;height:24px;border-width:3px;margin:0 auto 11px;"></div>
+      <p style="font-size:12.5px;">Fetching live tech news…</p>
+    </div>
+    <div class="ngrid" id="ngrid" style="display:none;"></div>
+  </div>
+
+  <!-- ══ RESUME AI ══ -->
+  <div class="page" id="pg-resume">
+    <div class="resume-two-col">
+      <div>
+        <div class="card">
+          <div class="stl" style="margin-bottom:13px;">📄 Resume Optimizer — Fresher Edition</div>
+          <div class="upzone" style="margin-bottom:12px;" onclick="document.getElementById('rai-f').click()">
+            <div class="uico">🤖</div>
+            <div class="utxt"><strong>Upload your resume</strong> for AI analysis<br/>PDF, DOC (max 5MB)</div>
+          </div>
+          <input type="file" id="rai-f" accept=".pdf,.doc,.docx" style="display:none" onchange="raiUp(this)"/>
+          <div id="rai-at"></div>
+          <label class="flbl" style="margin-top:10px;">Job Description (paste for tailored tips)</label>
+          <textarea class="fta" id="jd-txt" placeholder="Paste JD here for specific ATS score & targeted tips…" style="min-height:120px;"></textarea>
+          <label class="flbl">Target Role</label>
+          <select class="fsel" id="rai-role">
+            <option>Software Engineer (SDE)</option>
+            <option>Data Scientist</option>
+            <option>ML Engineer</option>
+            <option>Frontend Developer</option>
+            <option>Backend Developer</option>
+            <option>Data Analyst</option>
+          </select>
+          <button class="btn btn-p" style="width:100%;margin-top:5px;" id="rai-btn" onclick="runRAI()">🤖 Analyze with AI</button>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:14px;">
+          <div class="stl" style="margin-bottom:13px;">📊 ATS Score</div>
+          <div id="ats-el"><div style="font-size:12px;color:var(--muted);">Upload resume + JD to get your ATS score.</div></div>
+        </div>
+        <div class="card">
+          <div class="stl" style="margin-bottom:13px;">💡 AI Suggestions</div>
+          <div id="sug-el"><div class="empty"><div class="emico">🤖</div><p class="emtxt">Click "Analyze with AI" for personalized tips.</p></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ DSA ROADMAP ══ -->
+  <div class="page" id="pg-roadmap">
+    <div style="margin-bottom:16px;">
+      <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:4px;">🗺️ DSA & Interview Prep Roadmap</div>
+      <div style="font-size:12px;color:var(--muted);">Complete path for freshers targeting SWE & DS/ML roles at top Indian & global companies</div>
+    </div>
+    <div class="rm-grid" id="rm-grid"></div>
+  </div>
+
+  <!-- ══ PROFILE ══ -->
+  <div class="page" id="pg-profile">
+    <div class="pgrid">
+      <div class="card">
+        <div class="stl" style="margin-bottom:15px;">👤 Personal Info</div>
+        <label class="flbl">Full Name</label><input class="fin" id="p-name" placeholder="Your full name" oninput="syncSide()"/>
+        <label class="flbl">Email</label><input class="fin" id="p-email" placeholder="you@gmail.com" type="email"/>
+        <label class="flbl">Phone</label><input class="fin" id="p-phone" placeholder="+91 9876543210"/>
+        <label class="flbl">Location</label><input class="fin" id="p-loc" placeholder="Bangalore, India"/>
+        <label class="flbl">LinkedIn</label><input class="fin" id="p-li" placeholder="linkedin.com/in/yourname"/>
+        <label class="flbl">GitHub</label><input class="fin" id="p-gh" placeholder="github.com/yourname"/>
+        <label class="flbl">Portfolio</label><input class="fin" id="p-port" placeholder="yoursite.com"/>
+        <label class="flbl">LeetCode</label><input class="fin" id="p-lc" placeholder="leetcode.com/u/yourname"/>
+      </div>
+      <div class="card">
+        <div class="stl" style="margin-bottom:15px;">🎓 Academic & Career</div>
+        <label class="flbl">College / University</label><input class="fin" id="p-col" placeholder="XYZ Institute of Technology"/>
+        <label class="flbl">Degree & Branch</label><input class="fin" id="p-deg" placeholder="B.Tech Computer Science"/>
+        <label class="flbl">Graduation Year</label><input class="fin" id="p-grad" placeholder="2025"/>
+        <label class="flbl">CGPA / Percentage</label><input class="fin" id="p-cgpa" placeholder="8.5 CGPA / 85%"/>
+        <label class="flbl">Target Roles</label><input class="fin" id="p-roles" placeholder="SDE, Data Scientist, ML Engineer"/>
+        <label class="flbl">Preferred Locations</label><input class="fin" id="p-ploc" placeholder="Bangalore, Remote, Pune"/>
+        <label class="flbl">Expected Salary</label><input class="fin" id="p-sal" placeholder="₹30-50K/mo or 6-10 LPA"/>
+        <label class="flbl">About / Summary</label>
+        <textarea class="fta" id="p-bio" placeholder="Short intro for cover letters…"></textarea>
+      </div>
+      <div class="card" style="grid-column:1/-1;">
+        <div class="stl" style="margin-bottom:13px;">🛠️ Skills & Technologies</div>
+        <div id="skills-wrap"></div>
+        <div style="display:flex;gap:7px;margin-top:9px;">
+          <input class="fin" style="margin:0;flex:1;" id="skill-in" placeholder="Add skill…" onkeydown="if(event.key==='Enter')addSkill()"/>
+          <button class="btn btn-p" onclick="addSkill()">+ Add</button>
+        </div>
+        <div style="margin-top:11px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;">
+          <span style="font-size:10.5px;color:var(--muted);">Quick add:</span>
+          <button class="btn btn-g bsm" onclick="bulkS(['Python','NumPy','Pandas','scikit-learn','TensorFlow','PyTorch','SQL','Jupyter'])">DS/ML Stack</button>
+          <button class="btn btn-g bsm" onclick="bulkS(['React','Node.js','JavaScript','HTML','CSS','MongoDB','REST APIs','Git'])">Web Dev Stack</button>
+          <button class="btn btn-g bsm" onclick="bulkS(['C++','Data Structures','Algorithms','LeetCode','System Design'])">DSA / CP</button>
+          <button class="btn btn-g bsm" onclick="bulkS(['AWS','Docker','Linux','CI/CD'])">DevOps</button>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:13px;display:flex;gap:9px;flex-wrap:wrap;">
+      <button class="btn btn-p" onclick="saveProfile()">💾 Save Profile</button>
+      <button class="btn btn-g" onclick="calcScore()">📊 Calculate Score</button>
+      <button class="btn btn-g" onclick="syncComposer()">🔄 Sync to Composer</button>
+      <button class="btn btn-g" onclick="importProfileJSON()" title="Auto-fill from profile.json">📥 Load profile.json</button>
+      <button class="btn btn-g" onclick="exportProfileJSON()" title="Download your profile as JSON">📤 Export JSON</button>
+    </div>
+  </div>
+
+  <!-- ══ DAILY HUB ══ -->
+  <div class="page" id="pg-daily">
+    <!-- Stats row -->
+    <div class="stats-row">
+      <div class="stat">
+        <div class="slbl">Learning Streak</div>
+        <div class="sval" id="daily-streak">0</div>
+        <div class="ssub sup">🔥 days in a row</div>
+      </div>
+      <div class="stat">
+        <div class="slbl">Problems Solved</div>
+        <div class="sval" id="daily-solved">0</div>
+        <div class="ssub">🧩 total problems</div>
+      </div>
+      <div class="stat">
+        <div class="slbl">Days Tracked</div>
+        <div class="sval" id="daily-days">0</div>
+        <div class="ssub">📅 learning days</div>
+      </div>
+      <div class="stat">
+        <div class="slbl">Today's Status</div>
+        <div class="sval" id="daily-today" style="font-size:18px;">⏳</div>
+        <div class="ssub">Log to complete</div>
+      </div>
+    </div>
+
+    <div class="dash-two-col">
+      <!-- LEFT COLUMN -->
+      <div>
+        <!-- Problem of the Day -->
+        <div class="card" style="margin-bottom:17px;">
+          <div class="sh">
+            <div class="stl">🧩 Problem of the Day</div>
+            <div style="font-size:10px;color:var(--muted);" id="pod-date"></div>
+          </div>
+          <div id="pod-wrap">
+            <div class="pod-loading"><span class="spin"></span> Loading…</div>
+          </div>
+        </div>
+
+        <!-- Learning Log -->
+        <div class="card">
+          <div class="sh">
+            <div class="stl">📚 Today's Learning</div>
+            <div style="font-size:10px;color:var(--muted);">What did you learn today?</div>
+          </div>
+          <textarea class="fta" id="learn-input" placeholder="e.g. Learned Dijkstra's algorithm, studied time complexity of merge sort, read about React hooks…" style="min-height:80px;margin-bottom:9px;"></textarea>
+          <input class="fin" id="learn-tags" placeholder="Tags: python, graphs, dp, system-design…" style="margin-bottom:9px;"/>
+          <button class="btn btn-p" onclick="saveLearnEntry()">💾 Save Entry</button>
+          <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
+            <div class="stl" style="font-size:12px;margin-bottom:10px;">📖 Learning History</div>
+            <div id="learn-history"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div>
+        <!-- Today's Tech News -->
+        <div class="card" style="margin-bottom:17px;">
+          <div class="sh">
+            <div class="stl">📰 Today's Tech News</div>
+            <button class="btn btn-g bsm" onclick="loadDailyNews()">🔄 Refresh</button>
+          </div>
+          <div id="daily-news-list">
+            <div style="color:var(--muted);font-size:12px;padding:8px 0;">Loading news…</div>
+          </div>
+          <button class="btn btn-g bsm" onclick="nav('news',null)" style="margin-top:11px;">All News →</button>
+        </div>
+
+        <!-- Reminder -->
+        <div class="card" style="margin-bottom:17px;">
+          <div class="sh">
+            <div class="stl">🔔 Daily Reminder</div>
+          </div>
+          <div style="font-size:11.5px;color:var(--muted);margin-bottom:11px;">
+            Get a browser notification to learn, solve, and review news every day.
+          </div>
+          <div style="display:flex;gap:9px;align-items:center;margin-bottom:10px;">
+            <input class="fin" type="time" id="reminder-time" value="09:00" style="flex:1;"/>
+            <button class="btn btn-p" onclick="setReminder()">Set Reminder</button>
+          </div>
+          <div id="reminder-status"></div>
+          <div style="font-size:10.5px;color:var(--muted);margin-top:8px;">
+            Also run <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;">node automation/runner.js digest</code> to get a daily email digest.
+          </div>
+        </div>
+
+        <!-- Streak Calendar -->
+        <div class="card">
+          <div class="sh">
+            <div class="stl">📅 Activity Calendar</div>
+            <div style="display:flex;gap:9px;font-size:9.5px;color:var(--muted);align-items:center;">
+              <span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--sky);"></span>Learned
+              <span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--green);"></span>Solved
+              <span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--accent);"></span>Both
+            </div>
+          </div>
+          <div class="cal-grid" id="streak-cal"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SETTINGS ══ -->
+  <div class="page" id="pg-settings">
+    <div class="pgrid">
+      <div class="card">
+        <div class="stl" style="margin-bottom:15px;">⚙️ Application Settings</div>
+        <label class="flbl">Anthropic API Key</label>
+        <div style="display:flex;gap:7px;margin-bottom:10px;">
+          <input class="fin" id="s-apikey" type="password" placeholder="sk-ant-api03-…" style="flex:1;margin-bottom:0;"/>
+          <button class="btn btn-p bsm" onclick="saveApiKey()">Save</button>
+        </div>
+        <label class="flbl">Daily Email Limit</label>
+        <select class="fsel" id="s-limit"><option>5/day</option><option selected>10/day</option><option>20/day</option></select>
+        <label class="flbl">Send Time</label>
+        <input class="fin" type="time" id="s-time" value="09:00"/>
+        <label class="flbl">Follow-up After</label>
+        <select class="fsel" id="s-followup"><option>No follow-up</option><option>3 days</option><option selected>7 days</option></select>
+        <label class="flbl">Email Tone</label>
+        <select class="fsel" id="s-tone"><option>Professional</option><option>Friendly & Enthusiastic</option><option>Concise & Direct</option></select>
+        <button class="btn btn-p" onclick="saveSettings()">Save Settings</button>
+      </div>
+      <div class="card">
+        <div class="stl" style="margin-bottom:14px;">🤖 Automation</div>
+        <div style="font-size:11.5px;color:var(--muted);line-height:1.7;margin-bottom:12px;">
+          Run the automation from your terminal to schedule daily/weekly job applications.
+        </div>
+        <div style="background:var(--gh);border-radius:8px;padding:11px 13px;font-size:11px;font-family:'DM Mono',monospace;color:var(--fg);margin-bottom:8px;line-height:1.9;">
+          <div style="color:var(--muted);"># First-time setup</div>
+          <div>node automation/setup.js</div>
+          <div style="color:var(--muted);margin-top:6px"># Run now</div>
+          <div>node automation/runner.js run</div>
+          <div style="color:var(--muted);margin-top:6px"># Schedule daily at 9 AM</div>
+          <div>node automation/runner.js schedule --daily 09:00</div>
+          <div style="color:var(--muted);margin-top:6px"># Auto-fill Naukri forms</div>
+          <div>node automation/runner.js fill --site naukri</div>
+        </div>
+        <div style="font-size:10.5px;color:var(--muted);">Edit <strong>profile.json</strong> + <strong>.env</strong> before running.</div>
+      </div>
+      <div class="card">
+        <div class="stl" style="margin-bottom:14px;">🔔 Notifications</div>
+        <div class="notif-list">
+          <label>Email sent confirmation<input type="checkbox" checked style="accent-color:var(--accent);"/></label>
+          <label>New fresher job alerts<input type="checkbox" checked style="accent-color:var(--accent);"/></label>
+          <label>Daily news digest<input type="checkbox" checked style="accent-color:var(--accent);"/></label>
+          <label>Interview reminders<input type="checkbox" style="accent-color:var(--accent);"/></label>
+        </div>
+        <div class="stl" style="margin-bottom:11px;margin-top:16px;">🎨 Accent Color</div>
+        <div class="color-row">
+          <div onclick="setAcc('#7c6dfa')" style="background:#7c6dfa;border:2px solid #fff;"></div>
+          <div onclick="setAcc('#34d399')" style="background:#34d399;"></div>
+          <div onclick="setAcc('#fb923c')" style="background:#fb923c;"></div>
+          <div onclick="setAcc('#38bdf8')" style="background:#38bdf8;"></div>
+          <div onclick="setAcc('#f472b6')" style="background:#f472b6;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /main -->
+
+<!-- ════ MODALS ════ -->
+<div class="modal-ov" id="qa-modal">
+  <div class="modal">
+    <div class="mtl">⚡ Quick Apply <span class="cx" onclick="closeM('qa-modal')">✕</span></div>
+    <label class="flbl">Company Name</label><input class="fin" id="qac" placeholder="TCS, Infosys, Razorpay…"/>
+    <label class="flbl">Position</label><input class="fin" id="qap" placeholder="Software Engineer Trainee"/>
+    <label class="flbl">Recruiter Email</label><input class="fin" id="qae" placeholder="hr@company.com"/>
+    <label class="flbl">Note (optional)</label><textarea class="fta" id="qan" placeholder="Referral, portal, notes…" style="min-height:52px;"></textarea>
+    <div style="display:flex;gap:7px;">
+      <button class="btn btn-p" onclick="doQA()" style="flex:1;">⚡ Apply Now</button>
+      <button class="btn btn-g" onclick="closeM('qa-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="jd-modal">
+  <div class="modal">
+    <div class="mtl"><span id="jdm-ttl">Job Details</span><span class="cx" onclick="closeM('jd-modal')">✕</span></div>
+    <div id="jdm-body"></div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-c" id="toastc"></div>
+
+<!-- ════ SCRIPTS ════ -->
+<script src="js/data.js"></script>
+<!-- ════ BOTTOM NAV (mobile) ════ -->
+<nav class="bottom-nav" id="bottom-nav">
+  <div class="bn-item active" id="bn-dashboard" onclick="navMobile('dashboard',this)">
+    <div class="bn-ico">⚡</div><div class="bn-lbl">Home</div>
+  </div>
+  <div class="bn-item" id="bn-jobs" onclick="navMobile('jobs',this)">
+    <div class="bn-ico">🔍</div><div class="bn-lbl">Jobs</div>
+  </div>
+  <div class="bn-item" id="bn-daily" onclick="navMobile('daily',this)">
+    <div class="bn-ico">🔥</div><div class="bn-lbl">Daily</div>
+  </div>
+  <div class="bn-item" id="bn-apply" onclick="navMobile('apply',this)">
+    <div class="bn-ico">✉️</div><div class="bn-lbl">Apply</div>
+  </div>
+  <div class="bn-item" id="bn-profile" onclick="navMobile('profile',this)">
+    <div class="bn-ico">👤</div><div class="bn-lbl">Profile</div>
+  </div>
+</nav>
+
+<script src="js/state.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/jobs.js"></script>
+<script src="js/apply.js"></script>
+<script src="js/tracker.js"></script>
+<script src="js/news.js"></script>
+<script src="js/resume.js"></script>
+<script src="js/daily.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

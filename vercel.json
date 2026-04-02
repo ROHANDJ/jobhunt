@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "name": "jobhunt-pro",
+  "buildCommand": null,
+  "outputDirectory": ".",
+  "routes": [
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}
