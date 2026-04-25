@@ -5,16 +5,17 @@
 
 // ─── PAGE TITLES ─────────────────────────────────────────────────────────────
 const PAGE_TITLES = {
-  dashboard: '⚡ Dashboard',
-  jobs:      '🔍 Job Board',
-  apply:     '✉️ Auto Apply',
-  tracker:   '📊 Tracker',
-  daily:     '🔥 Daily Hub',
-  news:      '📰 Tech News',
-  resume:    '🤖 Resume AI',
-  roadmap:   '🗺️ DSA Roadmap',
-  profile:   '👤 My Profile',
-  settings:  '⚙️ Settings',
+  dashboard:    '⚡ Dashboard',
+  jobs:         '🔍 Job Board',
+  apply:        '✉️ Auto Apply',
+  tracker:      '📊 Tracker',
+  daily:        '🔥 Daily Hub',
+  news:         '📰 Tech News',
+  resume:       '🤖 Resume AI',
+  roadmap:      '🗺️ DSA Roadmap',
+  profile:      '👤 My Profile',
+  'hr-contacts':'🎯 HR Contacts',
+  settings:     '⚙️ Settings',
 };
 
 // ─── NAVIGATION ──────────────────────────────────────────────────────────────
@@ -42,11 +43,14 @@ function nav(pg, el) {
   closeSidebar();
 
   // Page-specific init
-  if (pg === 'news')    loadNews();
-  if (pg === 'jobs')    renderJobs();
-  if (pg === 'tracker') renderTracker();
-  if (pg === 'roadmap') renderRoadmap();
-  if (pg === 'daily')   initDaily();
+  if (pg === 'news')         loadNews();
+  if (pg === 'jobs')         renderJobs();
+  if (pg === 'tracker')      renderTracker();
+  if (pg === 'roadmap')      renderRoadmap();
+  if (pg === 'daily')        initDaily();
+  if (pg === 'apply')        checkMailServer();
+  if (pg === 'hr-contacts')  loadHRContacts();
+  if (pg === 'settings')     loadSavedKeys();
 }
 
 // Bottom nav navigation (mobile)

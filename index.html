@@ -31,6 +31,7 @@
     <div class="ni" onclick="nav('news',this)"><span class="ico">📰</span><span>Tech News</span></div>
     <div class="ni" onclick="nav('resume',this)"><span class="ico">🤖</span><span>Resume AI</span></div>
     <div class="ni" onclick="nav('roadmap',this)"><span class="ico">🗺️</span><span>DSA Roadmap</span></div>
+    <div class="ni" onclick="nav('hr-contacts',this)"><span class="ico">🎯</span><span>HR Contacts</span><span class="nb" id="hr-count">0</span></div>
     <div class="nsec">Account</div>
     <div class="ni" onclick="nav('profile',this)"><span class="ico">👤</span><span>Profile</span></div>
     <div class="ni" onclick="nav('settings',this)"><span class="ico">⚙️</span><span>Settings</span></div>
@@ -52,7 +53,7 @@
       <span style="color:var(--muted);font-size:12px;">🔎</span>
       <input type="text" placeholder="Search jobs…" id="gsearch" oninput="doSearch(this.value)"/>
     </div>
-    <div class="gmail-pill"><div class="gdot"></div>Gmail Connected</div>
+    <div class="gmail-pill" id="smtp-pill" onclick="nav('apply',null)" style="cursor:pointer;"><div class="gdot"></div>SMTP Checking…</div>
     <button class="btn btn-p bsm" onclick="openM('qa-modal')">⚡ Quick Apply</button>
   </div>
 
@@ -119,15 +120,27 @@
 
   <!-- ══ AUTO APPLY ══ -->
   <div class="page" id="pg-apply">
+
+    <!-- Mail server offline banner (hidden by default) -->
+    <div id="smtp-hint" style="display:none;background:var(--rh);border:1px solid var(--red);border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;line-height:1.8;">
+      <strong style="color:var(--red);">⚠ Mail Server Not Running</strong><br/>
+      The local SMTP server is offline. Open a terminal and run:<br/>
+      <code style="background:var(--surface2);padding:2px 8px;border-radius:5px;font-size:11px;">npm run mail-server</code>
+      &nbsp;or&nbsp;
+      <code style="background:var(--surface2);padding:2px 8px;border-radius:5px;font-size:11px;">node automation/mail-server.js</code><br/>
+      <span style="color:var(--muted);font-size:11px;">Keep that terminal open while you send emails. It will connect automatically.</span>
+      <br/><button class="btn btn-g bsm" style="margin-top:7px;" onclick="checkMailServer()">🔄 Retry Connection</button>
+    </div>
+
     <div class="apply-two-col">
       <div>
         <div class="composer">
           <div class="ch">
             <div>
-              <div class="stl">✉️ Email Campaign — Gmail Integration</div>
-              <div style="font-size:11px;color:var(--muted);margin-top:3px;">AI-written cover letter · Sent directly via your Gmail</div>
+              <div class="stl">✉️ Email Campaign — SMTP Send</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:3px;">Real Gmail SMTP · Resume attached · Run <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;">npm run mail-server</code> first</div>
             </div>
-            <button class="btn btn-p" id="sendbtn" onclick="sendEmails()">📤 Send via Gmail</button>
+            <button class="btn btn-p" id="sendbtn" onclick="sendEmails()">📤 Send via SMTP</button>
           </div>
           <div class="cb">
             <!-- LEFT: FORM -->
@@ -182,6 +195,7 @@
               <div style="display:flex;gap:6px;flex-wrap:wrap;">
                 <button class="btn btn-g bsm" onclick="addSampleRecs()">+ Indian IT Recruiters</button>
                 <button class="btn btn-g bsm" onclick="addMNCs()">+ MNCs / Big Tech</button>
+                <button class="btn btn-p bsm" onclick="addHRContacts()">🎯 + Scraped HR Contacts</button>
               </div>
 
               <div class="divider"></div>
@@ -216,8 +230,9 @@
                 <div class="prevsubj" id="prev-subj">Subject: Application for Software Engineer — Your Name</div>
                 <div id="prev-body"></div>
               </div>
-              <div style="display:flex;gap:6px;margin-top:9px;">
+              <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;">
                 <button class="btn btn-g bsm" onclick="regenEmail()">🔄 Regenerate</button>
+                <button class="btn btn-p bsm" id="aigen-btn" onclick="aiGenEmail()">✨ AI Generate</button>
                 <button class="btn btn-g bsm" onclick="copyEmail()">📋 Copy</button>
               </div>
               <div class="divider"></div>
@@ -491,16 +506,90 @@
     </div>
   </div>
 
+  <!-- ══ HR CONTACTS ══ -->
+  <div class="page" id="pg-hr-contacts">
+    <div class="pgrid">
+      <!-- Instructions Card -->
+      <div class="card">
+        <div class="stl" style="margin-bottom:13px;">🎯 LinkedIn HR Contact Scraper</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.8;margin-bottom:14px;">
+          Automatically scrape HR/recruiter emails from LinkedIn job postings and auto-email them when new positions open.
+          Run the CLI command below, then come back here to see scraped contacts and add them to your email campaign.
+        </div>
+
+        <div style="background:var(--gh);border-radius:8px;padding:12px 14px;font-size:11px;font-family:'DM Mono',monospace;color:var(--fg);margin-bottom:12px;line-height:2;">
+          <div style="color:var(--muted);"># Scrape HR emails from LinkedIn</div>
+          <div>node automation/runner.js scrape-hr</div>
+          <div style="color:var(--muted);margin-top:4px;"># Monitor &amp; auto-email when new jobs post</div>
+          <div>node automation/runner.js scrape-hr --monitor</div>
+          <div style="color:var(--muted);margin-top:4px;"># Target a specific company</div>
+          <div>node automation/runner.js scrape-hr --company "Razorpay"</div>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-p bsm" onclick="loadHRContacts()">🔄 Refresh Contacts</button>
+          <button class="btn btn-g bsm" onclick="addHRContactsToCampaign()">✉️ Add All to Campaign</button>
+          <button class="btn btn-g bsm" onclick="clearHRContacts()">🗑 Clear All</button>
+        </div>
+      </div>
+
+      <!-- Contacts List Card -->
+      <div class="card">
+        <div class="sh">
+          <div class="stl">👥 Scraped HR Contacts</div>
+          <span style="font-size:10.5px;color:var(--muted);" id="hr-total">0 contacts</span>
+        </div>
+        <div id="hr-contacts-list">
+          <div class="empty">
+            <div class="emico">🎯</div>
+            <p class="emtxt">No HR contacts yet. Run the scraper from your terminal first!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Manual Contact -->
+      <div class="card">
+        <div class="stl" style="margin-bottom:13px;">➕ Add HR Contact Manually</div>
+        <label class="flbl">HR / Recruiter Name</label>
+        <input class="fin" id="hr-name" placeholder="Priya Sharma"/>
+        <label class="flbl">Email</label>
+        <input class="fin" id="hr-email" placeholder="priya.sharma@company.com"/>
+        <label class="flbl">Company</label>
+        <input class="fin" id="hr-company" placeholder="Razorpay"/>
+        <label class="flbl">Position / Source</label>
+        <input class="fin" id="hr-position" placeholder="Software Engineer · Scraped from LinkedIn"/>
+        <button class="btn btn-p" onclick="addManualHR()" style="margin-top:4px;">➕ Add Contact</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ SETTINGS ══ -->
   <div class="page" id="pg-settings">
     <div class="pgrid">
       <div class="card">
         <div class="stl" style="margin-bottom:15px;">⚙️ Application Settings</div>
-        <label class="flbl">Anthropic API Key</label>
-        <div style="display:flex;gap:7px;margin-bottom:10px;">
-          <input class="fin" id="s-apikey" type="password" placeholder="sk-ant-api03-…" style="flex:1;margin-bottom:0;"/>
-          <button class="btn btn-p bsm" onclick="saveApiKey()">Save</button>
+
+        <!-- FREE: Gemini API Key -->
+        <div style="background:var(--gh);border-radius:9px;padding:11px 13px;margin-bottom:12px;">
+          <div style="font-size:11.5px;font-weight:700;color:var(--green);margin-bottom:4px;">🆓 Google Gemini API Key (FREE — Recommended)</div>
+          <div style="font-size:10.5px;color:var(--muted);margin-bottom:9px;">
+            Powers ATS, AI email, daily problems & news. Free at
+            <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent);">aistudio.google.com/apikey</a>
+            — no credit card needed. 15 req/min · 1M tokens/day.
+          </div>
+          <div style="display:flex;gap:7px;">
+            <input class="fin" id="s-geminikey" type="password" placeholder="AIza…" style="flex:1;margin-bottom:0;"/>
+            <button class="btn btn-p bsm" onclick="saveGeminiKey()">Save</button>
+          </div>
         </div>
+
+        <!-- OPTIONAL: Anthropic key -->
+        <label class="flbl">Anthropic API Key (optional fallback)</label>
+        <div style="display:flex;gap:7px;margin-bottom:4px;">
+          <input class="fin" id="s-apikey" type="password" placeholder="sk-ant-api03-…" style="flex:1;margin-bottom:0;"/>
+          <button class="btn btn-g bsm" onclick="saveApiKey()">Save</button>
+        </div>
+        <div id="ai-key-status" style="margin-bottom:10px;font-size:11px;"></div>
         <label class="flbl">Daily Email Limit</label>
         <select class="fsel" id="s-limit"><option>5/day</option><option selected>10/day</option><option>20/day</option></select>
         <label class="flbl">Send Time</label>
@@ -519,8 +608,12 @@
         <div style="background:var(--gh);border-radius:8px;padding:11px 13px;font-size:11px;font-family:'DM Mono',monospace;color:var(--fg);margin-bottom:8px;line-height:1.9;">
           <div style="color:var(--muted);"># First-time setup</div>
           <div>node automation/setup.js</div>
-          <div style="color:var(--muted);margin-top:6px"># Run now</div>
+          <div style="color:var(--muted);margin-top:6px"># Full run (analyze + email + fill)</div>
           <div>node automation/runner.js run</div>
+          <div style="color:var(--muted);margin-top:6px"># Scrape HR emails from LinkedIn</div>
+          <div>node automation/runner.js scrape-hr</div>
+          <div style="color:var(--muted);margin-top:6px"># Monitor &amp; auto-email new jobs</div>
+          <div>node automation/runner.js scrape-hr --monitor</div>
           <div style="color:var(--muted);margin-top:6px"># Schedule daily at 9 AM</div>
           <div>node automation/runner.js schedule --daily 09:00</div>
           <div style="color:var(--muted);margin-top:6px"># Auto-fill Naukri forms</div>
@@ -595,6 +688,7 @@
   </div>
 </nav>
 
+<script src="js/ai.js"></script>
 <script src="js/state.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/jobs.js"></script>

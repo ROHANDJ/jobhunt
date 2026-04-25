@@ -5,14 +5,17 @@
   "type": "module",
   "main": "automation/runner.js",
   "scripts": {
-    "setup":    "node automation/setup.js",
-    "run":      "node automation/runner.js run",
-    "analyze":  "node automation/runner.js analyze",
-    "email":    "node automation/runner.js email",
-    "fill":     "node automation/runner.js fill",
-    "schedule": "node automation/runner.js schedule",
-    "status":   "node automation/runner.js status",
-    "serve":    "npx serve . -p 3000"
+    "setup":       "node automation/setup.js",
+    "run":         "node automation/runner.js run",
+    "analyze":     "node automation/runner.js analyze",
+    "email":       "node automation/runner.js email",
+    "fill":        "node automation/runner.js fill",
+    "scrape-hr":   "node automation/runner.js scrape-hr",
+    "schedule":    "node automation/runner.js schedule",
+    "status":      "node automation/runner.js status",
+    "mail-server": "node automation/mail-server.js",
+    "serve":       "npx serve . -p 3000",
+    "dev":         "concurrently \"npm run mail-server\" \"npm run serve\""
   },
   "dependencies": {
     "@anthropic-ai/sdk":    "^0.30.0",

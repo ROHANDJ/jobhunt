@@ -157,6 +157,35 @@ async function cmdSchedule(args) {
   await setupSchedule(args);
 }
 
+async function cmdScrapeHR(profile, args) {
+  hr();
+  const monitor  = args.includes('--monitor');
+  const compIdx  = args.indexOf('--company');
+  const roleIdx  = args.indexOf('--role');
+  const company  = compIdx  !== -1 ? args[compIdx  + 1] : null;
+  const role     = roleIdx  !== -1 ? args[roleIdx  + 1] : null;
+
+  if (monitor) {
+    log('Starting LinkedIn HR monitor mode…', '🔍');
+    const { monitorLinkedIn } = await import('./modules/linkedin-hr-scraper.js');
+    await monitorLinkedIn(profile, { targetCompany: company, targetRole: role });
+  } else {
+    log('Scraping LinkedIn HR contacts…', '🎯');
+    if (company) log(`Target company: ${company}`);
+    if (role)    log(`Target role: ${role}`);
+    const { scrapeLinkedInHR } = await import('./modules/linkedin-hr-scraper.js');
+    const result = await scrapeLinkedInHR(profile, { targetCompany: company, targetRole: role });
+    ok(`Done! +${result.added} new HR contacts saved to automation/hr-contacts.json`);
+    ok(`Total contacts: ${result.total}`);
+    if (result.added > 0) {
+      log('Add them to your email campaign:');
+      result.contacts.slice(0, 5).forEach(c =>
+        log(`  ${c.name} @ ${c.company} → ${c.email}`)
+      );
+    }
+  }
+}
+
 async function cmdStatus() {
   hr();
   log('Last automation runs:', '📊');
@@ -184,23 +213,29 @@ async function main() {
 \x1b[1m  JobHunt Pro — Automation CLI\x1b[0m
 
   \x1b[36mCommands:\x1b[0m
-    run                          Full run: analyze + digest + email + fill forms
-    digest                       Send daily digest email (news + problem + reminder)
-    analyze                      AI resume analysis + job matching
-    email                        Send bulk application emails
+    run                              Full run: analyze + digest + email + fill forms
+    digest                           Send daily digest email (news + problem + reminder)
+    analyze                          AI resume analysis + job matching
+    email                            Send bulk application emails
     fill [--site naukri|internshala|linkedin]
-                                 Auto-fill job application forms
-    schedule --daily HH:MM       Run every day at given time (e.g. 09:00)
-    schedule --weekly DAY HH:MM  Run every week (e.g. monday 09:00)
-    schedule --cron "CRON_EXPR"  Custom cron expression
-    schedule --list              Show active schedules
-    schedule --stop              Cancel active schedule
-    status                       Show last 5 run results
+                                     Auto-fill job application forms
+    scrape-hr                        Scrape HR/recruiter emails from LinkedIn job postings
+    scrape-hr --company "Company"    Target a specific company's HR contacts
+    scrape-hr --role "Role"          Target a specific role's HR contacts
+    scrape-hr --monitor              Continuously monitor & auto-email when new jobs post (30 min interval)
+    schedule --daily HH:MM           Run every day at given time (e.g. 09:00)
+    schedule --weekly DAY HH:MM      Run every week (e.g. monday 09:00)
+    schedule --cron "CRON_EXPR"      Custom cron expression
+    schedule --list                  Show active schedules
+    schedule --stop                  Cancel active schedule
+    status                           Show last 5 run results
 
   \x1b[36mExamples:\x1b[0m
     node automation/runner.js run
+    node automation/runner.js scrape-hr
+    node automation/runner.js scrape-hr --company "Razorpay" --role "Software Engineer"
+    node automation/runner.js scrape-hr --monitor
     node automation/runner.js schedule --daily 09:00
-    node automation/runner.js schedule --weekly monday 09:00
     node automation/runner.js fill --site naukri
     node automation/runner.js status
 `);
@@ -220,8 +255,9 @@ async function main() {
       await cmdFill(profile, site);
       break;
     }
-    case 'schedule': await cmdSchedule(rest); break;
-    case 'status':   await cmdStatus(); break;
+    case 'scrape-hr': await cmdScrapeHR(profile, rest); break;
+    case 'schedule':  await cmdSchedule(rest); break;
+    case 'status':    await cmdStatus(); break;
     default:
       err(`Unknown command: ${command}. Run with --help for usage.`);
       process.exit(1);

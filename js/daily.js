@@ -28,10 +28,9 @@ async function loadProblemOfDay() {
 
   el.innerHTML = `<div class="pod-loading"><div class="spin"></div> Generating today's problem…</div>`;
 
-  const ANTHROPIC_KEY = localStorage.getItem('jhp_apiKey') || '';
-  if (!ANTHROPIC_KEY) {
+  if (!hasAIKey()) {
     el.innerHTML = `<div style="padding:14px;color:var(--muted);font-size:12px;">
-      Add your Anthropic API key in <strong>Settings → API Key</strong> to get AI-generated problems.
+      Add your <a href="#" onclick="nav('settings',null)" style="color:var(--accent);">free Gemini API key in Settings</a> to get AI-generated problems.
       <div style="margin-top:10px;"></div>
       ${renderFallbackProblem()}
     </div>`;
@@ -42,16 +41,7 @@ async function loadProblemOfDay() {
     'Linked Lists', 'Trees', 'Graphs', 'Dynamic Programming', 'Stacks & Queues', 'Sorting'];
   const cat = categories[new Date().getDate() % categories.length];
 
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1200,
-        messages: [{
-          role: 'user',
-          content: `Generate a coding interview problem in the category "${cat}" — the kind asked at Google, Amazon, Flipkart, or Razorpay for fresher/junior roles.
+  const prompt = `Generate a coding interview problem in the category "${cat}" — the kind asked at Google, Amazon, Flipkart, or Razorpay for fresher/junior roles.
 
 Return ONLY valid JSON (no markdown, no backticks):
 {
@@ -67,13 +57,11 @@ Return ONLY valid JSON (no markdown, no backticks):
   "solution": "Optimal solution explanation in 2-3 sentences + Python code",
   "timeComplexity": "O(?)",
   "spaceComplexity": "O(?)"
-}`
-        }]
-      })
-    });
+}`;
 
-    const data = await res.json();
-    const text = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+  try {
+    const text = await callAI(prompt, 1200);
+    if (!text) throw new Error('no response');
     const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
     const problem = JSON.parse(json);
 
@@ -193,29 +181,15 @@ async function loadDailyNews() {
 
   el.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:8px 0;"><span class="spin"></span> Fetching latest news…</div>`;
 
-  const ANTHROPIC_KEY = localStorage.getItem('jhp_apiKey') || '';
-  if (!ANTHROPIC_KEY) {
+  if (!hasAIKey()) {
     renderDailyNews(NEWS.slice(0, 4));
     return;
   }
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 900,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        messages: [{
-          role: 'user',
-          content: 'Find the 4 most important tech news stories today: AI/ML breakthroughs, software engineering trends, Indian startup funding, developer tools. Return ONLY a JSON array: [{"title":"...","source":"...","cat":"AI|jobs|startup|tools","excerpt":"1 sentence summary","col":"#7c6dfa"}]'
-        }]
-      })
-    });
-    const data = await res.json();
-    const text = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
-    const match = text.match(/\[[\s\S]*?\]/);
+    const prompt = 'List the 4 most important tech news stories from the past week: AI/ML breakthroughs, software engineering jobs in India, startup funding, developer tools. Return ONLY a JSON array: [{"title":"...","source":"...","cat":"AI|jobs|startup|tools","excerpt":"1 sentence factual summary","col":"#7c6dfa"}]';
+    const text = await callAI(prompt, 600);
+    const match = text?.match(/\[[\s\S]*?\]/);
     if (match) {
       const live = JSON.parse(match[0]);
       S.newsCache = [...live, ...NEWS];
@@ -424,10 +398,4 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
-// API key save helper (used in settings)
-function saveApiKey() {
-  const key = document.getElementById('s-apikey')?.value?.trim();
-  if (!key) { toast('Enter your API key first', 'e'); return; }
-  localStorage.setItem('jhp_apiKey', key);
-  toast('API key saved! ✅', 's');
-}
+// saveApiKey and saveGeminiKey are defined in js/ai.js (loaded before this file)
