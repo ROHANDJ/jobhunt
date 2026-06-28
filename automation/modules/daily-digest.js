@@ -17,10 +17,10 @@ const GEMINI_URL = (model = 'gemini-1.5-flash') =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
 async function geminiCall(prompt, maxTokens = 1200, useSearch = false) {
-  const model = useSearch ? 'gemini-2.0-flash' : 'gemini-1.5-flash';
+  const model = 'gemini-2.5-flash';
   const body = {
     contents:         [{ parts: [{ text: prompt }] }],
-    generationConfig: { maxOutputTokens: maxTokens },
+    generationConfig: { maxOutputTokens: maxTokens, thinkingConfig: { thinkingBudget: 0 } },
   };
   if (useSearch) body.tools = [{ google_search: {} }];
   const res = await fetch(GEMINI_URL(model), {
