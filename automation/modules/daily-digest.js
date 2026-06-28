@@ -118,6 +118,45 @@ Return ONLY a JSON array with no markdown:
   return [];
 }
 
+// ── Fetch live startup jobs ─────────────────────────────────────────────────
+async function fetchJobs(count = 4) {
+  log('Fetching remote startup jobs for freshers…');
+  try {
+    const prompt = `Search for ${count} CURRENTLY OPEN remote (India-friendly) openings for FRESHERS / entry-level candidates (0-2 years experience) at startups. Give a mix of:
+- Software Engineer / SDE (backend, frontend, full-stack)
+- Data Science / ML / AI roles
+- At least one Internship
+
+Strict requirements:
+- Remote, or remote-friendly for someone based in India.
+- Real, recently posted (within ~30 days), currently accepting applications.
+- The "url" MUST be a direct, working link to the application or listing page (company careers page, Wellfound/AngelList, LinkedIn Jobs, or the job board) — never invent URLs.
+
+Return ONLY a JSON array, no markdown:
+[
+  {"co":"Company","role":"Job title","type":"Full-time|Internship","salary":"pay if known else 'Not disclosed'","tags":"key tech/skills · separated · by dots","url":"direct application URL","logo":"one relevant emoji"}
+]`;
+    const text  = await geminiCall(prompt, 1500, true);
+    const match = text.match(/\[[\s\S]*\]/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      if (Array.isArray(parsed) && parsed.length) {
+        ok(`Fetched ${parsed.length} startup jobs`);
+        return parsed.slice(0, count).map(j => ({
+          co:     j.co || 'Startup',
+          role:   j.role || 'Software Engineer',
+          salary: j.salary || 'Not disclosed',
+          logo:   j.logo || '🚀',
+          tags:   [j.type, j.tags].filter(Boolean).join(' · '),
+          url:    j.url || '',
+        }));
+      }
+    }
+  } catch (e) { warn(`Job fetch failed: ${e.message}`); }
+  warn('Job fetch failed — using static fallback list');
+  return pickJobs(count);
+}
+
 // ── Generate problem of the day ───────────────────────────────────────────────
 async function generateProblem() {
   const categories = [
@@ -356,8 +395,8 @@ function jobsSection(jobs) {
                     <div style="font-size:11px;color:${MUTED};margin-top:2px;">${j.co} · ${j.salary}</div>
                   </td>
                   <td align="right" valign="middle">
-                    <div style="font-size:10px;color:${PURPLE};background:#7c6dfa18;border:1px solid #7c6dfa33;
-                      padding:4px 11px;border-radius:20px;white-space:nowrap;">View →</div>
+                    ${j.url ? `<a href="${j.url}" target="_blank" style="text-decoration:none;">` : ''}<div style="font-size:10px;color:${PURPLE};background:#7c6dfa18;border:1px solid #7c6dfa33;
+                      padding:4px 11px;border-radius:20px;white-space:nowrap;">${j.url ? 'Apply →' : 'View →'}</div>${j.url ? `</a>` : ''}
                   </td>
                 </tr>
                 <tr><td colspan="3" style="padding-top:9px;">
@@ -581,13 +620,12 @@ export async function sendDailyDigest() {
   }
 
   // Fetch all content in parallel
-  const [news, problem, tipData] = await Promise.all([
+  const [news, problem, tipData, jobs] = await Promise.all([
     fetchNews(),
     generateProblem(),
     generateTipAndTool(),
+    fetchJobs(4),
   ]);
-
-  const jobs = pickJobs(3);
   const { subject, html } = buildEmail(news, problem, jobs, tipData);
 
   // Send email
