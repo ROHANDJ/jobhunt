@@ -13,7 +13,9 @@
       "Bash(git config:*)",
       "Bash(start \"\" \"https://github.com/new\")",
       "Bash(start \"\" \"https://vercel.com/new/import?s=https://github.com/ROHANDJ/jobhunt\")",
-      "Bash(npx plugins:*)"
+      "Bash(npx plugins:*)",
+      "Bash(start \"\" \"https://github.com/ROHANDJ/jobhunt/settings/secrets/actions/new\")",
+      "Bash(gh run *)"
     ]
   }
 }

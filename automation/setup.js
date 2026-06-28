@@ -68,7 +68,7 @@ async function main() {
      Open: \x1b[36mprofile.json\x1b[0m
 
   2. \x1b[33mSet up your credentials in .env\x1b[0m:
-     • ANTHROPIC_API_KEY — get at https://console.anthropic.com/
+     • GEMINI_API_KEY — get free at https://aistudio.google.com/apikey
      • GMAIL_USER + GMAIL_APP_PASSWORD — for sending emails
        (App password: https://myaccount.google.com/apppasswords)
      • NAUKRI_EMAIL + NAUKRI_PASSWORD — for Naukri.com

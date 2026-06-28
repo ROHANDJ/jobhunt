@@ -5,10 +5,26 @@
  * sends it to Claude for ATS scoring and improvement tips.
  */
 
-import Anthropic     from '@anthropic-ai/sdk';
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname }            from 'path';
 import { fileURLToPath }            from 'url';
+
+const GEMINI_URL = key =>
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+
+async function geminiCall(prompt, maxTokens = 1500) {
+  const res = await fetch(GEMINI_URL(process.env.GEMINI_API_KEY), {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents:         [{ parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: maxTokens },
+    }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT      = join(__dirname, '..', '..');
@@ -67,12 +83,10 @@ ${(profile.certifications || []).map(c => c.name + ' — ' + c.issuer).join('\n'
 
 // ── Main export ───────────────────────────────────────────────────────────────
 export async function analyzeResume(profile, jobDescription = '') {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    warn('ANTHROPIC_API_KEY not set. Skipping resume analysis.');
+  if (!process.env.GEMINI_API_KEY) {
+    warn('GEMINI_API_KEY not set. Skipping resume analysis.');
     return null;
   }
-
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   // Try to load resume PDF
   let resumeText = null;
@@ -118,13 +132,7 @@ ${resumeText}
 ${jdSection}`;
 
   try {
-    const response = await client.messages.create({
-      model:      'claude-sonnet-4-20250514',
-      max_tokens: 1500,
-      messages:   [{ role: 'user', content: prompt }],
-    });
-
-    const text = response.content[0].text.trim();
+    const text = (await geminiCall(prompt, 1500)).trim();
     const json = text.startsWith('{') ? text : text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
     return JSON.parse(json);
   } catch (e) {

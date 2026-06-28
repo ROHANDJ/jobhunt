@@ -11,8 +11,27 @@
  *   7. 💬 Quote of the Day            (motivational)
  */
 
-import Anthropic  from '@anthropic-ai/sdk';
 import nodemailer from 'nodemailer';
+
+const GEMINI_URL = (model = 'gemini-1.5-flash') =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+
+async function geminiCall(prompt, maxTokens = 1200, useSearch = false) {
+  const model = useSearch ? 'gemini-2.0-flash' : 'gemini-1.5-flash';
+  const body = {
+    contents:         [{ parts: [{ text: prompt }] }],
+    generationConfig: { maxOutputTokens: maxTokens },
+  };
+  if (useSearch) body.tools = [{ google_search: {} }];
+  const res = await fetch(GEMINI_URL(model), {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+}
 
 const RECIPIENT = 'rohandj200@gmail.com';
 const SENDER_NAME = 'Rohan';
@@ -74,16 +93,10 @@ function pickQuote() {
 }
 
 // ── Fetch live tech news ──────────────────────────────────────────────────────
-async function fetchNews(client) {
+async function fetchNews() {
   log('Fetching today\'s tech news…');
   try {
-    const res = await client.messages.create({
-      model:      'claude-sonnet-4-20250514',
-      max_tokens: 1200,
-      tools:      [{ type: 'web_search_20250305', name: 'web_search' }],
-      messages:   [{
-        role: 'user',
-        content: `Search for today's top 5 tech news stories covering:
+    const prompt = `Search and return today's top 5 tech news stories covering:
 1. AI/ML breakthroughs or product launches
 2. Indian startup funding or tech hiring news
 3. New developer tools or frameworks released
@@ -93,10 +106,8 @@ async function fetchNews(client) {
 Return ONLY a JSON array with no markdown:
 [
   {"title":"...","source":"...","category":"AI|Jobs|Startup|Tools|Industry","summary":"1 concise sentence","url":"..."}
-]`
-      }],
-    });
-    const text  = res.content.filter(c => c.type === 'text').map(c => c.text).join('');
+]`;
+    const text  = await geminiCall(prompt, 1200, true);
     const match = text.match(/\[[\s\S]*?\]/);
     if (match) {
       const parsed = JSON.parse(match[0]);
@@ -108,7 +119,7 @@ Return ONLY a JSON array with no markdown:
 }
 
 // ── Generate problem of the day ───────────────────────────────────────────────
-async function generateProblem(client) {
+async function generateProblem() {
   const categories = [
     'Arrays & Hashing', 'Two Pointers', 'Sliding Window', 'Binary Search',
     'Linked Lists', 'Trees', 'Graphs', 'Dynamic Programming', 'Stacks & Queues',
@@ -118,12 +129,7 @@ async function generateProblem(client) {
   log(`Generating ${cat} problem…`);
 
   try {
-    const res = await client.messages.create({
-      model:      'claude-haiku-4-5-20251001',
-      max_tokens: 900,
-      messages:   [{
-        role: 'user',
-        content: `Generate a coding interview problem in the category "${cat}". Make it the type asked at Google, Amazon, Razorpay, or Flipkart for freshers.
+    const prompt = `Generate a coding interview problem in the category "${cat}". Make it the type asked at Google, Amazon, Razorpay, or Flipkart for freshers.
 
 Return ONLY valid JSON:
 {
@@ -143,10 +149,8 @@ Return ONLY valid JSON:
   "code": "def solution(...):\\n    # Python solution\\n    pass",
   "timeComplexity": "O(?)",
   "spaceComplexity": "O(?)"
-}`
-      }],
-    });
-    const text = res.content[0].text.trim();
+}`;
+    const text = (await geminiCall(prompt, 900)).trim();
     const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
     const p    = JSON.parse(json);
     ok(`Problem generated: ${p.title} (${p.difficulty})`);
@@ -158,15 +162,10 @@ Return ONLY valid JSON:
 }
 
 // ── Generate dev tip + tool spotlight ────────────────────────────────────────
-async function generateTipAndTool(client) {
+async function generateTipAndTool() {
   log('Generating dev tip and tool spotlight…');
   try {
-    const res = await client.messages.create({
-      model:      'claude-haiku-4-5-20251001',
-      max_tokens: 500,
-      messages:   [{
-        role: 'user',
-        content: `Generate two things for a fresher software engineer / data scientist:
+    const prompt = `Generate two things for a fresher software engineer / data scientist:
 
 1. A practical "Dev Tip of the Day" — a concrete actionable tip about coding, system design, interviews, or career growth. 2-3 sentences.
 
@@ -180,10 +179,8 @@ Return ONLY valid JSON:
     "description": "...",
     "why": "..."
   }
-}`
-      }],
-    });
-    const text = res.content[0].text.trim();
+}`;
+    const text = (await geminiCall(prompt, 500)).trim();
     const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
     return JSON.parse(json);
   } catch { return null; }
@@ -574,8 +571,8 @@ function buildEmail(news, problem, jobs, tipData) {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 export async function sendDailyDigest() {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    warn('ANTHROPIC_API_KEY not set. Add it to .env or GitHub Secrets.');
+  if (!process.env.GEMINI_API_KEY) {
+    warn('GEMINI_API_KEY not set. Add it to .env or GitHub Secrets.');
     return null;
   }
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
@@ -583,13 +580,11 @@ export async function sendDailyDigest() {
     return null;
   }
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
   // Fetch all content in parallel
   const [news, problem, tipData] = await Promise.all([
-    fetchNews(client),
-    generateProblem(client),
-    generateTipAndTool(client),
+    fetchNews(),
+    generateProblem(),
+    generateTipAndTool(),
   ]);
 
   const jobs = pickJobs(3);

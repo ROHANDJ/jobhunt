@@ -8,7 +8,22 @@
  *   4. Claude AI for ranking + match scoring
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+const GEMINI_URL = key =>
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+
+async function geminiCall(prompt, maxTokens = 500) {
+  const res = await fetch(GEMINI_URL(process.env.GEMINI_API_KEY), {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents:         [{ parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: maxTokens },
+    }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
 
 const warn = (m) => console.log(`\x1b[33m⚠\x1b[0m  ${m}`);
 const log  = (m) => console.log(`\x1b[36m→\x1b[0m  ${m}`);
@@ -34,9 +49,7 @@ const STATIC_JOBS = [
 
 // ── AI matching ───────────────────────────────────────────────────────────────
 async function aiMatchJobs(profile, jobs) {
-  if (!process.env.ANTHROPIC_API_KEY) return jobs.map(j => ({ ...j, matchScore: 50 }));
-
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  if (!process.env.GEMINI_API_KEY) return jobs.map(j => ({ ...j, matchScore: 50 }));
 
   const userSkills  = profile.skills?.technical?.map(s => s.name) || [];
   const targetRoles = profile.jobPreferences?.roles || [];
@@ -56,12 +69,7 @@ Return ONLY a JSON array of match scores (0-100) in the same order as the jobs l
 [85, 72, 90, ...]`;
 
   try {
-    const response = await client.messages.create({
-      model:      'claude-haiku-4-5-20251001',
-      max_tokens: 300,
-      messages:   [{ role: 'user', content: prompt }],
-    });
-    const text   = response.content[0].text.trim();
+    const text   = (await geminiCall(prompt, 300)).trim();
     const scores = JSON.parse(text.slice(text.indexOf('['), text.lastIndexOf(']') + 1));
     return jobs.map((j, i) => ({ ...j, matchScore: scores[i] ?? 50 }));
   } catch {
