@@ -33,8 +33,20 @@
  */
 
 import 'dotenv/config';
-import http       from 'http';
-import nodemailer from 'nodemailer';
+import http         from 'http';
+import nodemailer   from 'nodemailer';
+import { spawn }    from 'child_process';
+import { readFileSync, existsSync } from 'fs';
+import { join, dirname }            from 'path';
+import { fileURLToPath }            from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT       = join(__dirname, '..');
+const APPS_FILE  = join(ROOT, 'automation', 'applications.json');
+const LEADS_FILE = join(ROOT, 'automation', 'job-leads.json');
+
+// Guard so n8n can't spawn 10 overlapping browser runs at once.
+let linkedinRunning = false;
 
 const PORT = parseInt(process.env.MAIL_SERVER_PORT || '3001');
 
@@ -122,8 +134,11 @@ async function sendOne({ to, subject, body, senderName, resumeBase64, resumeName
   });
 }
 
-// ── Rate-limit: keep a small delay between emails to avoid spam filters ───────
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+// ── Rate-limit: gap between emails so Gmail doesn't flag the burst ────────────
+// Minimum 10s (configurable via EMAIL_SEND_GAP_MS) + a little jitter.
+const sleep       = (ms) => new Promise(r => setTimeout(r, ms));
+const EMAIL_GAP_MS = Math.max(10000, parseInt(process.env.EMAIL_SEND_GAP_MS || '10000'));
+const emailGap     = () => sleep(EMAIL_GAP_MS + Math.random() * 3000);
 
 // ── HTTP server ───────────────────────────────────────────────────────────────
 const server = http.createServer(async (req, res) => {
@@ -198,7 +213,7 @@ const server = http.createServer(async (req, res) => {
         }
 
         // Polite delay between sends (avoids Gmail spam flagging)
-        if (i < recipients.length - 1) await sleep(2500 + Math.random() * 1500);
+        if (i < recipients.length - 1) await emailGap();
       }
 
       const sent   = results.filter(r => r.ok).length;
@@ -213,6 +228,67 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // POST /api/linkedin-apply — trigger a LinkedIn auto-apply run (for n8n)
+  // Body (all optional): { auto:true, referrals:true, role:"...", location:"...", limit:5 }
+  if (req.method === 'POST' && url === '/api/linkedin-apply') {
+    try {
+      const body = await readBody(req).catch(() => ({}));
+      if (linkedinRunning) {
+        json(res, 409, { ok: false, error: 'A LinkedIn run is already in progress' });
+        return;
+      }
+
+      const args = ['automation/runner.js', 'linkedin'];
+      if (body.auto)      args.push('--auto');
+      if (body.referrals) args.push('--referrals');
+      if (body.role)      args.push('--role', String(body.role));
+      if (body.location)  args.push('--location', String(body.location));
+      if (body.limit)     args.push('--limit', String(body.limit));
+
+      linkedinRunning = true;
+      const child = spawn('node', args, { cwd: ROOT, stdio: 'inherit' });
+      info(`LinkedIn run started (pid ${child.pid}): ${args.slice(1).join(' ')}`);
+      child.on('exit', (code) => {
+        linkedinRunning = false;
+        ok(`LinkedIn run finished (exit ${code})`);
+      });
+
+      // Return immediately — the browser run takes minutes. Poll /api/applications for results.
+      json(res, 202, { ok: true, started: true, mode: body.auto ? 'auto' : 'dry-run', args: args.slice(1) });
+    } catch (e) {
+      linkedinRunning = false;
+      err(`LinkedIn trigger failed: ${e.message}`);
+      json(res, 500, { ok: false, error: e.message });
+    }
+    return;
+  }
+
+  // GET /api/applications — read the recorded application log (for n8n)
+  if (req.method === 'GET' && url === '/api/applications') {
+    const data = existsSync(APPS_FILE)
+      ? JSON.parse(readFileSync(APPS_FILE, 'utf-8'))
+      : [];
+    json(res, 200, { ok: true, running: linkedinRunning, count: data.length, applications: data });
+    return;
+  }
+
+  // GET /api/job-leads — real fresher openings (from `runner.js leads`)
+  // Query: ?withEmail=true → only leads that have a real published contact email
+  if (req.method === 'GET' && url === '/api/job-leads') {
+    const all = existsSync(LEADS_FILE)
+      ? JSON.parse(readFileSync(LEADS_FILE, 'utf-8'))
+      : [];
+    const wantEmail = /[?&]withEmail=true/.test(req.url || '');
+    const leads = wantEmail ? all.filter(l => l.contactEmail) : all;
+    json(res, 200, {
+      ok: true,
+      count: leads.length,
+      withEmail: all.filter(l => l.contactEmail).length,
+      leads,
+    });
+    return;
+  }
+
   // 404
   json(res, 404, { ok: false, error: 'Unknown endpoint' });
 });
@@ -222,6 +298,10 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log('\x1b[1m\x1b[36m  JobHunt Pro — Mail Server\x1b[0m');
   console.log(`  Listening on \x1b[4mhttp://localhost:${PORT}\x1b[0m`);
   console.log(`  Gmail sender : \x1b[33m${process.env.GMAIL_USER}\x1b[0m`);
+  console.log('');
+  console.log('  Endpoints:');
+  console.log('    POST /api/send            POST /api/send-bulk');
+  console.log('    POST /api/linkedin-apply  GET  /api/applications   (for n8n)');
   console.log('');
   console.log('  Keep this running while you use the web UI.');
   console.log('  Press Ctrl+C to stop.\n');

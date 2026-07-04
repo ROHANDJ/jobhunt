@@ -292,7 +292,8 @@ ${process.env.GMAIL_USER}`;
         text:    body,
       });
       ok(`Auto-emailed: ${contact.name} at ${contact.company} (${contact.email})`);
-      await sleep(3000 + Math.random() * 2000);
+      // Gap between emails so Gmail doesn't flag the burst (min 10s + jitter)
+      await sleep(Math.max(10000, parseInt(process.env.EMAIL_SEND_GAP_MS || '10000')) + Math.random() * 3000);
     } catch (e) {
       warn(`Email failed to ${contact.email}: ${e.message}`);
     }

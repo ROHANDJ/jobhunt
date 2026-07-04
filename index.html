@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>JobHunt Pro — Fresher Edition</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="css/styles.css"/>
 </head>
@@ -62,7 +63,7 @@
     <div class="stats-row">
       <div class="stat"><div class="slbl">Applications Sent</div><div class="sval" id="ds-sent">0</div><div class="ssub sup" id="ds-sub">Start your campaign ↗</div></div>
       <div class="stat"><div class="slbl">Responses</div><div class="sval" id="ds-resp">0</div><div class="ssub">Awaiting replies</div></div>
-      <div class="stat"><div class="slbl">Fresher Openings</div><div class="sval">18</div><div class="ssub sup">↑ 6 new today</div></div>
+      <div class="stat"><div class="slbl">Fresher Openings</div><div class="sval" id="ds-open">18</div><div class="ssub sup" id="ds-open-sub">Ready to browse ↗</div></div>
       <div class="stat"><div class="slbl">Profile Score</div><div class="sval" id="ds-score">35%</div><div class="ssub sdn" id="ds-score-sub">↓ Fill profile</div></div>
     </div>
     <div class="qa-grid">
@@ -74,9 +75,11 @@
     <div class="dash-two-col">
       <div>
         <div class="card" style="margin-bottom:17px;">
-          <div class="sh"><div class="stl">📈 Applications This Week</div></div>
+          <div class="sh">
+            <div class="stl">📈 Applications This Week</div>
+            <span class="week-total" id="week-total">0 this week</span>
+          </div>
           <div class="bc" id="bchart"></div>
-          <div style="display:flex;gap:5px;margin-top:4px;" id="blabs"></div>
         </div>
         <div class="card">
           <div class="sh"><div class="stl">🎯 Top Fresher Picks</div><button class="btn btn-g bsm" onclick="nav('jobs',null)">All →</button></div>
@@ -193,9 +196,8 @@
               </div>
               <div id="rec-tags" style="margin-bottom:7px;"></div>
               <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                <button class="btn btn-g bsm" onclick="addSampleRecs()">+ Indian IT Recruiters</button>
-                <button class="btn btn-g bsm" onclick="addMNCs()">+ MNCs / Big Tech</button>
-                <button class="btn btn-p bsm" onclick="addHRContacts()">🎯 + Scraped HR Contacts</button>
+                <button class="btn btn-p bsm" onclick="loadRealLeads()">🔎 Load Real Fresher Leads</button>
+                <button class="btn btn-g bsm" onclick="addHRContacts()">🎯 + Scraped HR Contacts</button>
               </div>
 
               <div class="divider"></div>

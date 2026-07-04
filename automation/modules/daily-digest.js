@@ -33,6 +33,21 @@ async function geminiCall(prompt, maxTokens = 1200, useSearch = false) {
   return data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
 }
 
+// ── Robust JSON extraction (handles markdown fences, prose, trailing text) ─────
+function extractJsonArray(text) {
+  if (!text) return null;
+  const t = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+  const start = t.indexOf('[');
+  const end   = t.lastIndexOf(']');           // greedy: last bracket, not first
+  if (start === -1 || end === -1 || end <= start) return null;
+  try { return JSON.parse(t.slice(start, end + 1)); } catch { return null; }
+}
+
+// Build a safe fallback link when a source/job URL is missing
+function searchUrl(query) {
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+}
+
 const RECIPIENT = 'rohandj200@gmail.com';
 const SENDER_NAME = 'Rohan';
 
@@ -95,8 +110,7 @@ function pickQuote() {
 // ── Fetch live tech news ──────────────────────────────────────────────────────
 async function fetchNews() {
   log('Fetching today\'s tech news…');
-  try {
-    const prompt = `Search and return today's top 5 tech news stories covering:
+  const prompt = `Search and return today's top 5 tech news stories covering:
 1. AI/ML breakthroughs or product launches
 2. Indian startup funding or tech hiring news
 3. New developer tools or frameworks released
@@ -107,14 +121,26 @@ Return ONLY a JSON array with no markdown:
 [
   {"title":"...","source":"...","category":"AI|Jobs|Startup|Tools|Industry","summary":"1 concise sentence","url":"..."}
 ]`;
-    const text  = await geminiCall(prompt, 1200, true);
-    const match = text.match(/\[[\s\S]*?\]/);
-    if (match) {
-      const parsed = JSON.parse(match[0]);
-      ok(`Fetched ${parsed.length} news stories`);
-      return parsed;
-    }
-  } catch (e) { warn(`News fetch failed: ${e.message}`); }
+  // Search grounding is flaky — retry once before giving up so news shows daily
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const text   = await geminiCall(prompt, 2000, true);
+      const parsed = extractJsonArray(text);
+      if (Array.isArray(parsed) && parsed.length) {
+        const stories = parsed.map(n => ({
+          title:    n.title || 'Tech update',
+          source:   n.source || '',
+          category: n.category || 'Tech',
+          summary:  n.summary || '',
+          // Guarantee a clickable link — fall back to a search for the headline
+          url:      n.url || searchUrl(`${n.title || ''} ${n.source || ''}`.trim()),
+        }));
+        ok(`Fetched ${stories.length} news stories`);
+        return stories;
+      }
+      warn(`News response could not be parsed (attempt ${attempt}/2)`);
+    } catch (e) { warn(`News fetch failed (attempt ${attempt}/2): ${e.message}`); }
+  }
   return [];
 }
 
@@ -136,25 +162,28 @@ Return ONLY a JSON array, no markdown:
 [
   {"co":"Company","role":"Job title","type":"Full-time|Internship","salary":"pay if known else 'Not disclosed'","tags":"key tech/skills · separated · by dots","url":"direct application URL","logo":"one relevant emoji"}
 ]`;
-    const text  = await geminiCall(prompt, 1500, true);
-    const match = text.match(/\[[\s\S]*\]/);
-    if (match) {
-      const parsed = JSON.parse(match[0]);
-      if (Array.isArray(parsed) && parsed.length) {
-        ok(`Fetched ${parsed.length} startup jobs`);
-        return parsed.slice(0, count).map(j => ({
-          co:     j.co || 'Startup',
-          role:   j.role || 'Software Engineer',
+    const text   = await geminiCall(prompt, 2000, true);
+    const parsed = extractJsonArray(text);
+    if (Array.isArray(parsed) && parsed.length) {
+      ok(`Fetched ${parsed.length} startup jobs`);
+      return parsed.slice(0, count).map(j => {
+        const co   = j.co || 'Startup';
+        const role = j.role || 'Software Engineer';
+        return {
+          co,
+          role,
           salary: j.salary || 'Not disclosed',
           logo:   j.logo || '🚀',
           tags:   [j.type, j.tags].filter(Boolean).join(' · '),
-          url:    j.url || '',
-        }));
-      }
+          // Guarantee a working link — fall back to a job search for co + role
+          url:    (j.url && /^https?:\/\//.test(j.url)) ? j.url : searchUrl(`${co} ${role} careers apply`),
+        };
+      });
     }
   } catch (e) { warn(`Job fetch failed: ${e.message}`); }
   warn('Job fetch failed — using static fallback list');
-  return pickJobs(count);
+  // Even the static fallback gets a search link so every card is clickable
+  return pickJobs(count).map(j => ({ ...j, url: searchUrl(`${j.co} ${j.role} careers apply`) }));
 }
 
 // ── Generate problem of the day ───────────────────────────────────────────────
@@ -287,8 +316,13 @@ function newsSection(items) {
                   <td align="right" style="font-size:10px;color:${MUTED};">#${i + 1}</td>
                 </tr>
                 <tr><td colspan="2" style="padding-top:8px;">
-                  <div style="font-size:13.5px;font-weight:600;color:${TEXT};line-height:1.5;">${n.title}</div>
+                  <div style="font-size:13.5px;font-weight:600;line-height:1.5;">
+                    ${n.url
+                      ? `<a href="${n.url}" target="_blank" style="color:${TEXT};text-decoration:none;">${n.title} <span style="color:${color};font-weight:700;">↗</span></a>`
+                      : `<span style="color:${TEXT};">${n.title}</span>`}
+                  </div>
                   <div style="font-size:11.5px;color:${MUTED};margin-top:5px;line-height:1.6;">${n.summary}</div>
+                  ${n.url ? `<a href="${n.url}" target="_blank" style="display:inline-block;margin-top:8px;font-size:10px;color:${color};text-decoration:none;">Read full story →</a>` : ''}
                 </td></tr>
               </table>
             </td>
@@ -395,8 +429,8 @@ function jobsSection(jobs) {
                     <div style="font-size:11px;color:${MUTED};margin-top:2px;">${j.co} · ${j.salary}</div>
                   </td>
                   <td align="right" valign="middle">
-                    ${j.url ? `<a href="${j.url}" target="_blank" style="text-decoration:none;">` : ''}<div style="font-size:10px;color:${PURPLE};background:#7c6dfa18;border:1px solid #7c6dfa33;
-                      padding:4px 11px;border-radius:20px;white-space:nowrap;">${j.url ? 'Apply →' : 'View →'}</div>${j.url ? `</a>` : ''}
+                    <a href="${j.url}" target="_blank" style="text-decoration:none;"><div style="font-size:10px;color:${PURPLE};background:#7c6dfa18;border:1px solid #7c6dfa33;
+                      padding:4px 11px;border-radius:20px;white-space:nowrap;">Apply →</div></a>
                   </td>
                 </tr>
                 <tr><td colspan="3" style="padding-top:9px;">

@@ -157,6 +157,55 @@ async function cmdSchedule(args) {
   await setupSchedule(args);
 }
 
+async function cmdLeads(profile, args) {
+  hr();
+  const value = (name) => { const i = args.indexOf(name); return i !== -1 ? args[i + 1] : null; };
+  log('Searching the web for real fresher openings (≤ 1 yr experience)…', '🔎');
+
+  if (!process.env.GEMINI_API_KEY) {
+    err('Set GEMINI_API_KEY in .env to search for live job leads.');
+    return null;
+  }
+
+  const { refreshJobLeads } = await import('./modules/job-leads.js');
+  const result = await refreshJobLeads(profile, {
+    role:     value('--role'),
+    location: value('--location'),
+    count:    value('--count'),
+  });
+
+  ok(`+${result.added} new leads · ${result.total} total saved · ${result.withEmail} have a published email`);
+  result.leads.slice(0, 8).forEach(l =>
+    log(`${l.company} — ${l.role}  [${l.experienceRequired}]  ${l.contactEmail ? '✉ ' + l.contactEmail : '→ ' + (l.applyUrl || 'no link')}`)
+  );
+  log('Saved to automation/job-leads.json');
+  log(result.withEmail
+    ? 'Run "node automation/runner.js email" to contact the ones with a real email.'
+    : 'None have a public email — apply via their URL, or run "node automation/runner.js linkedin --auto" to reach HR.');
+  return result;
+}
+
+async function cmdLinkedIn(profile, args) {
+  hr();
+  const flag  = (name) => args.includes(name);
+  const value = (name) => { const i = args.indexOf(name); return i !== -1 ? args[i + 1] : null; };
+
+  const options = {
+    auto:          flag('--auto'),
+    referrals:     flag('--referrals'),
+    easyApplyOnly: !flag('--all-jobs'),
+    role:          value('--role'),
+    location:      value('--location'),
+    limit:         value('--limit'),
+  };
+
+  log(`LinkedIn auto-apply ${options.auto ? '(LIVE — will apply & email)' : '(dry-run — log only)'}`, '🤖');
+  const { runLinkedInAutoApply } = await import('./modules/linkedin-auto-apply.js');
+  const result = await runLinkedInAutoApply(profile, options);
+  saveRunLog({ linkedin: result });
+  return result;
+}
+
 async function cmdScrapeHR(profile, args) {
   hr();
   const monitor  = args.includes('--monitor');
@@ -216,9 +265,15 @@ async function main() {
     run                              Full run: analyze + digest + email + fill forms
     digest                           Send daily digest email (news + problem + reminder)
     analyze                          AI resume analysis + job matching
-    email                            Send bulk application emails
+    leads                            Search the web for REAL fresher openings (≤1yr exp) → job-leads.json
+    leads --role "X" --count 15      Target a role / fetch more leads
+    email                            Email only leads that have a real published contact (no guessed addresses)
     fill [--site naukri|internshala|linkedin]
                                      Auto-fill job application forms
+    linkedin                         LinkedIn auto-apply (dry-run: search + log to JSON)
+    linkedin --auto                  LIVE: auto-fill Easy Apply + email the HR/poster
+    linkedin --auto --referrals      Also find colleagues & send referral requests
+    linkedin --role "X" --location Y --limit N   Override search criteria
     scrape-hr                        Scrape HR/recruiter emails from LinkedIn job postings
     scrape-hr --company "Company"    Target a specific company's HR contacts
     scrape-hr --role "Role"          Target a specific role's HR contacts
@@ -232,6 +287,8 @@ async function main() {
 
   \x1b[36mExamples:\x1b[0m
     node automation/runner.js run
+    node automation/runner.js linkedin
+    node automation/runner.js linkedin --auto --referrals --limit 5
     node automation/runner.js scrape-hr
     node automation/runner.js scrape-hr --company "Razorpay" --role "Software Engineer"
     node automation/runner.js scrape-hr --monitor
@@ -255,6 +312,8 @@ async function main() {
       await cmdFill(profile, site);
       break;
     }
+    case 'leads':     await cmdLeads(profile, rest); break;
+    case 'linkedin':  await cmdLinkedIn(profile, rest); break;
     case 'scrape-hr': await cmdScrapeHR(profile, rest); break;
     case 'schedule':  await cmdSchedule(rest); break;
     case 'status':    await cmdStatus(); break;

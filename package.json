@@ -11,6 +11,8 @@
     "email": "node automation/runner.js email",
     "fill": "node automation/runner.js fill",
     "scrape-hr": "node automation/runner.js scrape-hr",
+    "linkedin": "node automation/runner.js linkedin",
+    "linkedin:auto": "node automation/runner.js linkedin --auto --referrals",
     "schedule": "node automation/runner.js schedule",
     "status": "node automation/runner.js status",
     "mail-server": "node automation/mail-server.js",

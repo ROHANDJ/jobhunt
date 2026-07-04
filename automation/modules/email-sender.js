@@ -24,15 +24,6 @@ const log  = (m) => console.log(`\x1b[36m→\x1b[0m  ${m}`);
 const ok   = (m) => console.log(`\x1b[32m✔\x1b[0m  ${m}`);
 const warn = (m) => console.log(`\x1b[33m⚠\x1b[0m  ${m}`);
 
-// ── Default recruiter list ────────────────────────────────────────────────────
-const DEFAULT_RECRUITERS = [
-  { email: 'campus@tcs.com',       company: 'TCS' },
-  { email: 'campus@wipro.com',     company: 'Wipro' },
-  { email: 'careers@razorpay.com', company: 'Razorpay' },
-  { email: 'careers@zepto.team',   company: 'Zepto' },
-  { email: 'hiring@fractal.ai',    company: 'Fractal Analytics' },
-];
-
 // ── Email templates ───────────────────────────────────────────────────────────
 function buildEmail(profile, recruiter, variant = 0) {
   const p       = profile.personal;
@@ -116,12 +107,41 @@ function createTransporter() {
   });
 }
 
+// ── Build recipient list from real job leads (falls back to defaults) ──────────
+async function resolveRecruiters(customRecruiters) {
+  if (customRecruiters) return customRecruiters;
+
+  // Prefer real, discovered leads that actually have a published email.
+  try {
+    const { loadLeads } = await import('./job-leads.js');
+    const leads = loadLeads().filter(l => l.contactEmail);
+    if (leads.length) {
+      log(`Using ${leads.length} real job leads with published emails (from job-leads.json)`);
+      return leads.map(l => ({ email: l.contactEmail, company: l.company, role: l.role, applyUrl: l.applyUrl }));
+    }
+    const total = loadLeads().length;
+    if (total) {
+      warn(`${total} job leads found but none have a published email — apply via their URL, or use "runner.js linkedin" to reach HR.`);
+      return [];
+    }
+  } catch { /* job-leads module optional */ }
+
+  warn('No real leads available. Refusing to email the generic sample list (campus@… etc.).');
+  warn('Run "node automation/runner.js leads" first to fetch real fresher openings.');
+  return [];
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 export async function sendCampaign(profile, customRecruiters = null) {
   const transporter  = createTransporter();
-  const recruiters   = customRecruiters || DEFAULT_RECRUITERS;
+  const recruiters   = await resolveRecruiters(customRecruiters);
   const limit        = parseInt(process.env.DAILY_APPLY_LIMIT || '20');
   const targets      = recruiters.slice(0, limit);
+
+  if (!targets.length) {
+    warn('No valid recipients — nothing sent.');
+    return { sent: 0, failed: 0, results: [], skipped: 'no real contacts' };
+  }
 
   let sent   = 0;
   let failed = 0;
@@ -159,9 +179,10 @@ export async function sendCampaign(profile, customRecruiters = null) {
       sent++;
       results.push({ email: rec.email, status: 'sent', subject });
 
-      // Polite delay between emails (2-4 seconds)
+      // Gap between emails so Gmail doesn't flag the burst (min 10s + jitter)
       if (i < targets.length - 1) {
-        await new Promise(r => setTimeout(r, 2000 + Math.random() * 2000));
+        const gap = Math.max(10000, parseInt(process.env.EMAIL_SEND_GAP_MS || '10000'));
+        await new Promise(r => setTimeout(r, gap + Math.random() * 3000));
       }
     } catch (e) {
       warn(`Failed → ${rec.email}: ${e.message}`);

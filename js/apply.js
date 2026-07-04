@@ -159,18 +159,35 @@ function addRec() {
   updateTargetCompanies();
 }
 
-function addSampleRecs() {
-  INDIAN_IT_RECRUITERS.forEach(e => { if (!S.recs.includes(e)) S.recs.push(e); });
-  renderRecTags();
-  updateTargetCompanies();
-  toast('Indian IT recruiters added!', 's');
-}
+// Load REAL fresher job leads (≤1yr exp) discovered by `runner.js leads`.
+// Only adds leads that have a genuine published contact email — no guessed
+// generic addresses. Leads that only have an apply URL are reported, not emailed.
+async function loadRealLeads() {
+  const online = await checkMailServer();
+  if (!online) {
+    toast('Start the mail server first: npm run mail-server', 'e', 6000);
+    return;
+  }
+  try {
+    const res  = await fetch(`${MAIL_SERVER}/api/job-leads`);
+    const data = await res.json();
+    if (!data.ok || !data.count) {
+      toast('No leads yet. Run: node automation/runner.js leads', 'w', 6000);
+      return;
+    }
+    const emailable = data.leads.filter(l => l.contactEmail);
+    let added = 0;
+    emailable.forEach(l => { if (!S.recs.includes(l.contactEmail)) { S.recs.push(l.contactEmail); added++; } });
+    renderRecTags();
+    updateTargetCompanies();
 
-function addMNCs() {
-  MNC_RECRUITERS.forEach(e => { if (!S.recs.includes(e)) S.recs.push(e); });
-  renderRecTags();
-  updateTargetCompanies();
-  toast('MNC recruiters added!', 's');
+    const urlOnly = data.count - data.withEmail;
+    if (added) toast(`Added ${added} real fresher contact(s) ✅`, 's', 4000);
+    else       toast('No leads have a public email — apply via their URL or use the LinkedIn module', 'w', 6000);
+    if (urlOnly > 0) toast(`${urlOnly} more lead(s) have only an apply link (see Jobs page)`, 'i', 5000);
+  } catch (e) {
+    toast(`Could not load leads: ${e.message}`, 'e', 6000);
+  }
 }
 
 function addHRContacts() {

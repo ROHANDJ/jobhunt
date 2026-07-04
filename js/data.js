@@ -233,12 +233,8 @@ const FRESHER_TIPS = [
   { i: '🤝', t: 'Always end with a CTA: "Can we schedule a 10-min call?"' },
 ];
 
-// ─── SAMPLE RECRUITER EMAILS ───────────────────────────────────────────────────
-const INDIAN_IT_RECRUITERS = [
-  'talent@fractal.ai', 'campus@tcs.com', 'campus@wipro.com',
-  'campus@infosys.com', 'hr@hcl.com', 'careers@mphasis.com'
-];
-const MNC_RECRUITERS = [
-  'campus@google.com', 'university@microsoft.com',
-  'campus@amazon.com', 'campus@oracle.com', 'grad-hiring@meta.com'
-];
+// NOTE: The old hardcoded INDIAN_IT_RECRUITERS / MNC_RECRUITERS sample lists
+// (campus@google.com, hr@hcl.com, …) were removed — they were guessed generic
+// addresses, not real hiring contacts. Use "Load Real Fresher Leads" in the
+// Auto Apply page, which pulls verified leads from automation/job-leads.json
+// (populated by: node automation/runner.js leads).

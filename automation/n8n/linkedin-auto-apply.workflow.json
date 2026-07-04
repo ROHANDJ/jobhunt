@@ -1,0 +1,66 @@
+{
+  "name": "JobHunt Pro — LinkedIn Auto-Apply (daily)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 30 3 * * *" }
+          ]
+        }
+      },
+      "id": "trigger-cron",
+      "name": "Every day 09:00 IST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [260, 300],
+      "notes": "03:30 UTC == 09:00 Asia/Kolkata"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3001/api/linkedin-apply",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"auto\": true, \"referrals\": true, \"limit\": 5 } }}",
+        "options": {}
+      },
+      "id": "trigger-run",
+      "name": "Start LinkedIn Run",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300],
+      "notes": "Kicks off the browser run. Returns 202 immediately; the run takes a few minutes."
+    },
+    {
+      "parameters": { "amount": 8, "unit": "minutes" },
+      "id": "wait-node",
+      "name": "Wait for run to finish",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [740, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:3001/api/applications",
+        "options": {}
+      },
+      "id": "read-results",
+      "name": "Read applications.json",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [980, 300],
+      "notes": "Read the recorded results so you can email yourself a summary, push to a sheet, etc."
+    }
+  ],
+  "connections": {
+    "Every day 09:00 IST": { "main": [[{ "node": "Start LinkedIn Run", "type": "main", "index": 0 }]] },
+    "Start LinkedIn Run":  { "main": [[{ "node": "Wait for run to finish", "type": "main", "index": 0 }]] },
+    "Wait for run to finish": { "main": [[{ "node": "Read applications.json", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "description": "Triggers the JobHunt Pro LinkedIn auto-apply run via the local mail-server webhook, waits, then reads back the recorded applications. Requires `npm run mail-server` running on the same machine as n8n. For n8n that cannot reach localhost, use an 'Execute Command' node instead: node automation/runner.js linkedin --auto --referrals"
+  }
+}

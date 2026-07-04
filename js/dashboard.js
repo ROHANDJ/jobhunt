@@ -12,7 +12,22 @@ function updateStats() {
     : 'Start your campaign ↗';
 
   const responses = S.apps.filter(a => a.status === 'interview' || a.status === 'offer').length;
-  document.getElementById('ds-resp').textContent = responses;
+  const respEl    = document.getElementById('ds-resp');
+  respEl.textContent = responses;
+  const respSub = respEl.parentElement.querySelector('.ssub');
+  if (respSub) respSub.textContent = responses > 0 ? `↑ ${responses} to follow up` : 'Awaiting replies';
+
+  // Fresher openings — real count from the job board, not a hardcoded number
+  const openEl = document.getElementById('ds-open');
+  if (openEl && typeof JOBS !== 'undefined') {
+    openEl.textContent = JOBS.length;
+    const internCt = JOBS.filter(j => j.intern).length;
+    const openSub  = document.getElementById('ds-open-sub');
+    if (openSub) openSub.textContent = internCt ? `${internCt} internships ↗` : 'Ready to browse ↗';
+  }
+
+  // Keep the weekly chart in sync with the latest counts
+  buildBarChart();
 }
 
 // ─── ACTIVITY FEED ────────────────────────────────────────────────────────────
@@ -47,17 +62,47 @@ function buildDefaultActivity() {
 }
 
 // ─── BAR CHART ────────────────────────────────────────────────────────────────
+// Real rolling last-7-days view built from tracked applications (S.apps[].date)
+// plus today's live SMTP sends (S.sentCt). Today's bar is highlighted.
 function buildBarChart() {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const data = [1, 3, 2, 5, 3, 0, S.sentCt];
-  const max  = Math.max(...data, 1);
+  const chart = document.getElementById('bchart');
+  if (!chart) return;
 
-  document.getElementById('bchart').innerHTML = data.map((v, i) => `
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
-      <div class="bbar" style="height:${Math.max(4, (v / max) * 62)}px;width:100%;" data-v="${v}"></div>
-      <div class="blab">${days[i]}</div>
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const today    = new Date();
+
+  // Count tracked applications per calendar day (date stored as en-IN string)
+  const perDay = {};
+  (S.apps || []).forEach(a => {
+    if (!a.date) return;
+    perDay[a.date] = (perDay[a.date] || 0) + 1;
+  });
+
+  const buckets = [];
+  for (let i = 6; i >= 0; i--) {
+    const d   = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = d.toLocaleDateString('en-IN');
+    let count = perDay[key] || 0;
+    if (i === 0) count += S.sentCt || 0; // fold today's live sends into today
+    buckets.push({ label: dayNames[d.getDay()], count, isToday: i === 0 });
+  }
+
+  const max      = Math.max(...buckets.map(b => b.count), 1);
+  const weekTotal = buckets.reduce((s, b) => s + b.count, 0);
+
+  chart.innerHTML = buckets.map(b => `
+    <div class="bcol">
+      <div class="bval">${b.count || ''}</div>
+      <div class="bbar${b.isToday ? ' today' : ''}"
+           style="height:${b.count ? Math.max(6, (b.count / max) * 90) : 3}px;"
+           data-v="${b.count}"></div>
+      <div class="blab${b.isToday ? ' today' : ''}">${b.label}</div>
     </div>
   `).join('');
+
+  const totalEl = document.getElementById('week-total');
+  if (totalEl) totalEl.textContent = `${weekTotal} this week`;
 }
 
 // ─── TOP JOB PICKS (Dashboard) ───────────────────────────────────────────────

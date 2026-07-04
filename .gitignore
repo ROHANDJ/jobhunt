@@ -3,6 +3,9 @@ node_modules/
 profile.json
 automation/.run-log.json
 automation/.schedule-config.json
+automation/applications.json
+automation/hr-contacts.json
+automation/job-leads.json
 *.log
 .DS_Store
 Thumbs.db
