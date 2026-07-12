@@ -43,9 +43,48 @@ function extractJsonArray(text) {
   try { return JSON.parse(t.slice(start, end + 1)); } catch { return null; }
 }
 
-// Build a safe fallback link when a source/job URL is missing
+// Build a durable fallback when a direct listing/article is no longer available.
 function searchUrl(query) {
   return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+}
+
+function newsSearchUrl(title, source) {
+  return `https://news.google.com/search?q=${encodeURIComponent(`${title} ${source}`.trim())}&hl=en-IN&gl=IN&ceid=IN:en`;
+}
+
+function safeHttpUrl(value) {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
+    if (host === 'localhost' || host === '::1' || /^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host)) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+// AI-grounded answers can still contain a stale or invented URL. Verify it from
+// the runner before placing it in an email; use the search fallback otherwise.
+async function verifyExternalUrl(value) {
+  const url = safeHttpUrl(value);
+  if (!url) return null;
+
+  const request = async (method) => {
+    const response = await fetch(url, {
+      method,
+      redirect: 'follow',
+      signal: AbortSignal.timeout(8000),
+      headers: method === 'GET' ? { Range: 'bytes=0-1024' } : undefined,
+    });
+    return response.ok ? response.url : null;
+  };
+
+  try {
+    return await request('HEAD') || await request('GET');
+  } catch {
+    return null;
+  }
 }
 
 const RECIPIENT = 'rohandj200@gmail.com';
@@ -127,13 +166,21 @@ Return ONLY a JSON array with no markdown:
       const text   = await geminiCall(prompt, 2000, true);
       const parsed = extractJsonArray(text);
       if (Array.isArray(parsed) && parsed.length) {
-        const stories = parsed.map(n => ({
+        const rawStories = parsed.slice(0, 5).map(n => ({
           title:    n.title || 'Tech update',
           source:   n.source || '',
           category: n.category || 'Tech',
           summary:  n.summary || '',
           // Guarantee a clickable link — fall back to a search for the headline
           url:      n.url || searchUrl(`${n.title || ''} ${n.source || ''}`.trim()),
+        }));
+        const stories = await Promise.all(rawStories.map(async story => {
+          const directUrl = await verifyExternalUrl(story.url);
+          return {
+            ...story,
+            url: directUrl || newsSearchUrl(story.title, story.source),
+            linkLabel: directUrl ? 'Read full story' : 'Find latest coverage',
+          };
         }));
         ok(`Fetched ${stories.length} news stories`);
         return stories;
@@ -165,8 +212,7 @@ Return ONLY a JSON array, no markdown:
     const text   = await geminiCall(prompt, 2000, true);
     const parsed = extractJsonArray(text);
     if (Array.isArray(parsed) && parsed.length) {
-      ok(`Fetched ${parsed.length} startup jobs`);
-      return parsed.slice(0, count).map(j => {
+      const rawJobs = parsed.slice(0, count).map(j => {
         const co   = j.co || 'Startup';
         const role = j.role || 'Software Engineer';
         return {
@@ -176,14 +222,28 @@ Return ONLY a JSON array, no markdown:
           logo:   j.logo || '🚀',
           tags:   [j.type, j.tags].filter(Boolean).join(' · '),
           // Guarantee a working link — fall back to a job search for co + role
-          url:    (j.url && /^https?:\/\//.test(j.url)) ? j.url : searchUrl(`${co} ${role} careers apply`),
+          url: j.url,
         };
       });
+      const jobs = await Promise.all(rawJobs.map(async job => {
+        const directUrl = await verifyExternalUrl(job.url);
+        return {
+          ...job,
+          url: directUrl || searchUrl(`${job.co} ${job.role} remote India fresher apply`),
+          linkLabel: directUrl ? 'Apply' : 'Find current listing',
+        };
+      }));
+      ok(`Fetched ${jobs.length} startup jobs`);
+      return jobs;
     }
   } catch (e) { warn(`Job fetch failed: ${e.message}`); }
   warn('Job fetch failed — using static fallback list');
   // Even the static fallback gets a search link so every card is clickable
-  return pickJobs(count).map(j => ({ ...j, url: searchUrl(`${j.co} ${j.role} careers apply`) }));
+  return pickJobs(count).map(j => ({
+    ...j,
+    url: searchUrl(`${j.co} ${j.role} remote India fresher apply`),
+    linkLabel: 'Find current listing',
+  }));
 }
 
 // ── Generate problem of the day ───────────────────────────────────────────────
@@ -322,7 +382,7 @@ function newsSection(items) {
                       : `<span style="color:${TEXT};">${n.title}</span>`}
                   </div>
                   <div style="font-size:11.5px;color:${MUTED};margin-top:5px;line-height:1.6;">${n.summary}</div>
-                  ${n.url ? `<a href="${n.url}" target="_blank" style="display:inline-block;margin-top:8px;font-size:10px;color:${color};text-decoration:none;">Read full story →</a>` : ''}
+                  ${n.url ? `<a href="${n.url}" target="_blank" style="display:inline-block;margin-top:8px;font-size:10px;color:${color};text-decoration:none;">${n.linkLabel || 'Read full story'} →</a>` : ''}
                 </td></tr>
               </table>
             </td>
@@ -430,7 +490,7 @@ function jobsSection(jobs) {
                   </td>
                   <td align="right" valign="middle">
                     <a href="${j.url}" target="_blank" style="text-decoration:none;"><div style="font-size:10px;color:${PURPLE};background:#7c6dfa18;border:1px solid #7c6dfa33;
-                      padding:4px 11px;border-radius:20px;white-space:nowrap;">Apply →</div></a>
+                      padding:4px 11px;border-radius:20px;white-space:nowrap;">${j.linkLabel || 'Apply'} →</div></a>
                   </td>
                 </tr>
                 <tr><td colspan="3" style="padding-top:9px;">
@@ -547,7 +607,7 @@ function buildEmail(news, problem, jobs, tipData) {
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
         <td>
-          <div style="font-size:24px;font-weight:800;color:#fff;letter-spacing:-0.5px;">JobHunt Pro</div>
+          <div style="font-size:24px;font-weight:800;color:#fff;letter-spacing:-0.5px;">🔒 Locked In</div>
           <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:3px;letter-spacing:2px;text-transform:uppercase;">Daily Digest</div>
         </td>
         <td align="right" valign="top">
@@ -619,7 +679,7 @@ function buildEmail(news, problem, jobs, tipData) {
       <tr>
         <td>
           <div style="font-size:11px;color:${MUTED};line-height:1.7;">
-            <strong style="color:${TEXT};">JobHunt Pro</strong> · Your daily career companion<br/>
+            <strong style="color:${TEXT};">🔒 Locked In</strong> · Your daily career + study-abroad companion<br/>
             Sent to ${RECIPIENT} every morning at 9:00 AM IST
           </div>
         </td>
@@ -669,7 +729,7 @@ export async function sendDailyDigest() {
   });
 
   await transporter.sendMail({
-    from:    `"JobHunt Pro 🔥" <${process.env.GMAIL_USER}>`,
+    from:    `"Locked In 🔒" <${process.env.GMAIL_USER}>`,
     to:      RECIPIENT,
     subject,
     html,

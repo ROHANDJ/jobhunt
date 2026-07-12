@@ -13,6 +13,7 @@ const PAGE_TITLES = {
   news:         '📰 Tech News',
   resume:       '🤖 Resume AI',
   roadmap:      '🗺️ DSA Roadmap',
+  study:        '🌍 MS Abroad',
   profile:      '👤 My Profile',
   'hr-contacts':'🎯 HR Contacts',
   settings:     '⚙️ Settings',
@@ -47,6 +48,7 @@ function nav(pg, el) {
   if (pg === 'jobs')         renderJobs();
   if (pg === 'tracker')      renderTracker();
   if (pg === 'roadmap')      renderRoadmap();
+  if (pg === 'study')        initStudy();
   if (pg === 'daily')        initDaily();
   if (pg === 'apply')        checkMailServer();
   if (pg === 'hr-contacts')  loadHRContacts();

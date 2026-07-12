@@ -1,7 +1,7 @@
 {
-  "name": "jobhunt-pro",
+  "name": "locked-in",
   "version": "2.0.0",
-  "description": "Automated job hunting platform for freshers — resume analysis, form-filling, scheduled email campaigns",
+  "description": "Locked In — careers + MS abroad HQ for freshers: job auto-apply, resume AI, and a full higher-studies hub (universities, scholarships, exams, SOP/visa tips)",
   "type": "module",
   "main": "automation/runner.js",
   "scripts": {

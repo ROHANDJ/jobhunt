@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>JobHunt Pro — Fresher Edition</title>
+<title>Locked In — Careers & MS Abroad</title>
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="css/styles.css"/>
@@ -16,10 +16,10 @@
 <!-- ════ SIDEBAR ════ -->
 <nav class="sidebar" id="sidebar">
   <div class="logo-wrap">
-    <div class="logo">JobHunt Pro</div>
-    <div class="logo-ico" style="display:none;font-size:22px;text-align:center;">🚀</div>
-    <div class="logo-sub">Career Command Center</div>
-    <div class="fresher-pill">🎓 Fresher Mode ON</div>
+    <div class="logo">🔒 Locked In</div>
+    <div class="logo-ico" style="display:none;font-size:22px;text-align:center;">🔒</div>
+    <div class="logo-sub">Career + Higher Studies HQ</div>
+    <div class="fresher-pill">🎯 Grind Mode ON</div>
   </div>
   <div class="nav">
     <div class="nsec">Main</div>
@@ -33,6 +33,8 @@
     <div class="ni" onclick="nav('resume',this)"><span class="ico">🤖</span><span>Resume AI</span></div>
     <div class="ni" onclick="nav('roadmap',this)"><span class="ico">🗺️</span><span>DSA Roadmap</span></div>
     <div class="ni" onclick="nav('hr-contacts',this)"><span class="ico">🎯</span><span>HR Contacts</span><span class="nb" id="hr-count">0</span></div>
+    <div class="nsec">🎓 Higher Studies</div>
+    <div class="ni" onclick="nav('study',this)"><span class="ico">🌍</span><span>MS Abroad</span><span class="nb" style="background:var(--gh);color:var(--green);">NEW</span></div>
     <div class="nsec">Account</div>
     <div class="ni" onclick="nav('profile',this)"><span class="ico">👤</span><span>Profile</span></div>
     <div class="ni" onclick="nav('settings',this)"><span class="ico">⚙️</span><span>Settings</span></div>
@@ -642,6 +644,94 @@
       </div>
     </div>
   </div>
+
+  <!-- ══ MS ABROAD / HIGHER STUDIES ══ -->
+  <div class="page" id="pg-study">
+    <div style="margin-bottom:16px;">
+      <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:4px;">🌍 MS Abroad — Higher Studies Hub</div>
+      <div style="font-size:12px;color:var(--muted);">Everything for a Master's abroad: universities, scholarships, exams, SOP/LOR tips, visa & a step-by-step timeline. 🇺🇸 🇩🇪 🇬🇧 🇨🇦 🇦🇺</div>
+    </div>
+
+    <!-- Progress checklist banner -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="sh" style="margin-bottom:10px;">
+        <div class="stl">✅ My Application Checklist</div>
+        <span style="font-size:11px;color:var(--muted);" id="checklist-lbl">0/14 done · 0%</span>
+      </div>
+      <div style="height:8px;background:var(--surface2);border-radius:5px;overflow:hidden;margin-bottom:14px;">
+        <div id="checklist-bar" style="height:100%;width:0%;background:var(--accent);border-radius:5px;transition:width .3s;"></div>
+      </div>
+      <div id="study-checklist" style="columns:2;column-gap:26px;"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" id="study-tabs">
+      <div class="tab active" onclick="sStudyTab('timeline',this)">🗓️ Timeline</div>
+      <div class="tab" onclick="sStudyTab('unis',this)">🏛️ Universities</div>
+      <div class="tab" onclick="sStudyTab('schol',this)">🎁 Scholarships</div>
+      <div class="tab" onclick="sStudyTab('exams',this)">📝 Exams</div>
+      <div class="tab" onclick="sStudyTab('tips',this)">💡 Tips & Tricks</div>
+      <div class="tab" onclick="sStudyTab('res',this)">📚 Playbook</div>
+    </div>
+
+    <!-- Timeline panel -->
+    <div class="study-panel" id="st-timeline">
+      <div class="info-banner">
+        <span style="font-size:20px;">⏳</span>
+        <div style="flex:1;"><div style="font-size:12.5px;font-weight:600;">Start ~15 months before your intake.</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Fall (Aug/Sep) intake is the biggest & best-funded. Work backwards from these milestones.</div></div>
+      </div>
+      <div class="rm-grid" id="st-timeline-grid"></div>
+    </div>
+
+    <!-- Universities panel -->
+    <div class="study-panel" id="st-unis" style="display:none;">
+      <div class="filters" id="uni-filters">
+        <div class="fbtn active" data-region="all" onclick="renderStudyUnis('all',this)">🌍 All</div>
+        <div class="fbtn" data-region="us" onclick="renderStudyUnis('us',this)">🇺🇸 USA</div>
+        <div class="fbtn" data-region="eu" onclick="renderStudyUnis('eu',this)">🇩🇪 Germany / EU</div>
+        <div class="fbtn" data-region="uk" onclick="renderStudyUnis('uk',this)">🇬🇧 UK / Ireland</div>
+        <div class="fbtn" data-region="canz" onclick="renderStudyUnis('canz',this)">🇨🇦 Canada / AUS</div>
+      </div>
+      <div style="margin:10px 0 14px;">
+        <input class="fin" id="uni-search" placeholder="🔎 Search university, country or program…" style="margin:0;" oninput="filterUnisSearch()"/>
+      </div>
+      <div class="sh"><div class="stl">🏛️ Programs <span id="uni-ct" style="font-weight:400;color:var(--muted);font-size:12px;"></span></div></div>
+      <div class="jgrid" id="uni-grid"></div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:14px;">💡 Figures are indicative for 2025–26 — always confirm tuition, tests & deadlines on the official page before applying.</div>
+    </div>
+
+    <!-- Scholarships panel -->
+    <div class="study-panel" id="st-schol" style="display:none;">
+      <div class="info-banner">
+        <span style="font-size:20px;">💰</span>
+        <div style="flex:1;"><div style="font-size:12.5px;font-weight:600;">Treat scholarships like a job — apply to 6–8.</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">University assistantships (RA/TA) are the most common full funding — email professors early.</div></div>
+      </div>
+      <div class="jgrid" id="schol-grid"></div>
+    </div>
+
+    <!-- Exams panel -->
+    <div class="study-panel" id="st-exams" style="display:none;">
+      <div class="rm-grid" id="exam-grid"></div>
+    </div>
+
+    <!-- Tips panel -->
+    <div class="study-panel" id="st-tips" style="display:none;">
+      <div class="rm-grid" id="tips-grid"></div>
+    </div>
+
+    <!-- Playbook / Resources panel -->
+    <div class="study-panel" id="st-res" style="display:none;">
+      <div class="info-banner">
+        <span style="font-size:20px;">🔖</span>
+        <div style="flex:1;"><div style="font-size:12.5px;font-weight:600;">Curated links — profile eval, communities, loans & exam prep.</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Bookmark these. GradCafe + r/gradadmissions are gold for benchmarking your profile.</div></div>
+      </div>
+      <div class="pgrid" id="res-grid"></div>
+    </div>
+  </div>
+
 </div><!-- /main -->
 
 <!-- ════ MODALS ════ -->
@@ -701,6 +791,7 @@
 <script src="js/daily.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/dashboard.js"></script>
+<script src="js/study.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

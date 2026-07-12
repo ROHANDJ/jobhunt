@@ -1,6 +1,6 @@
-# JobHunt Pro — Fresher Edition 🎓
+# 🔒 Locked In — Careers & MS Abroad
 
-A complete job application platform for freshers targeting **Software Engineering** and **Data Science / ML** roles.  
+A complete platform for freshers to (1) land **Software Engineering** / **Data Science / ML** jobs and (2) plan a **Master's abroad** — universities, scholarships, exams, SOP/LOR/visa tips and a full application timeline.  
 Built as a single-page app with vanilla HTML, CSS, and JS — no build tools required.
 
 ---
@@ -8,12 +8,12 @@ Built as a single-page app with vanilla HTML, CSS, and JS — no build tools req
 ## 📁 Project Structure
 
 ```
-jobhunt-pro/
-├── index.html          ← Main HTML — all pages (sidebar, topbar, 9 page divs, modals)
+locked-in/
+├── index.html          ← Main HTML — all pages (sidebar, topbar, page divs, modals)
 ├── css/
 │   └── styles.css      ← All styles — CSS variables, layout, components
 └── js/
-    ├── data.js         ← JOBS, NEWS, ROADMAP, email templates, recruiter lists
+    ├── data.js         ← JOBS, NEWS, ROADMAP, email templates + MS-abroad data
     ├── state.js        ← Global app state (S object)
     ├── ui.js           ← Navigation, modals, toasts, search, settings
     ├── jobs.js         ← Job board: render, filter, apply, detail modal
@@ -23,6 +23,7 @@ jobhunt-pro/
     ├── resume.js       ← Resume AI: ATS score + tips via Anthropic API
     ├── profile.js      ← Profile page: skills, score, sync to composer
     ├── dashboard.js    ← Dashboard widgets: stats, chart, activity feed, roadmap
+    ├── study.js        ← MS Abroad hub: universities, scholarships, exams, tips, checklist
     └── main.js         ← App entry point — DOMContentLoaded init
 ```
 

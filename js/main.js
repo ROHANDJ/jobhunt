@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  console.log('🚀 JobHunt Pro loaded! AI: Gemini (free) + Anthropic (fallback)');
+  console.log('🔒 Locked In loaded! Careers + MS Abroad · AI: Gemini (free) + Anthropic (fallback)');
 });
 
 // ─── HR CONTACTS (LinkedIn Scraper) ─────────────────────────────────────────

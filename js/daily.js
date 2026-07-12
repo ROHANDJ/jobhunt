@@ -379,9 +379,9 @@ function scheduleNotification(time) {
 
     clearTimeout(window._reminderTimer);
     window._reminderTimer = setTimeout(() => {
-      new Notification('JobHunt Pro — Daily Reminder 🔔', {
+      new Notification('Locked In — Daily Reminder 🔔', {
         body: '📚 Log what you learned today!\n🧩 Solve your daily problem!\n📰 Check today\'s tech news!',
-        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><text y="28" font-size="28">🚀</text></svg>'
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><text y="28" font-size="28">🔒</text></svg>'
       });
       // Reschedule for tomorrow
       scheduleNotification(time);
